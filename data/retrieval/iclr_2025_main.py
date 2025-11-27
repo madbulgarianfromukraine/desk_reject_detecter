@@ -75,7 +75,7 @@ def main():
         # 1. Check for mandatory PDF path
         pdf_path = get_note_value(submission, 'pdf')
         if pdf_path is None:
-            print(f"❌ Skipping Submission ID {submission.id}: No main PDF path found.")
+            print(f"❌ Skipping Submission ID {submission.id} and {submission.content["title"]}: No main PDF path found.")
             continue
 
         # 2. Check for mandatory desk reject comment existence (metadata check)
