@@ -53,10 +53,10 @@ def filter_proper_accepted_papers(client: openreview.api.OpenReviewClient, initi
             continue
 
         comment_notes = client.get_all_notes(replyto=submission.id, details='content')
-        desk_reject_notes = []
 
         for note in comment_notes:
-            # We check for the presence of the required reason field
-            if get_note_value(note=note, field="desk_reject_comments"):
-                desk_reject_notes.append(note)
-    return [{}]
+            # We check for the presence of the required decision field
+            if get_note_value(note=note, field="decision"):
+                submissions_to_process.append(note)
+
+    return submissions_to_process
