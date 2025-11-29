@@ -92,17 +92,10 @@ def main():
             print(f"❌ Skipping Submission ID {submission.id}: Found {len(desk_reject_notes)} desk reject notes (must be exactly 1).")
             continue
 
-        # If we reached this point, exactly one valid desk_reject_note was found.
-        desk_reject_comment_note = desk_reject_notes[0]
-
-        if not (get_note_value(note=desk_reject_comment_note, field="desk_reject_comments")):
-            print(f"❌ Skipping Submission ID {submission.id} and {submission.content["title"]}: Comment Note is empty or lacks reason keys (Weaknesses/Summary).")
-            continue
-
         # If all checks pass, add the note and its corresponding comment note to the processing list
         submissions_to_process.append({
             'submission': submission,
-            'comment_note': desk_reject_comment_note,
+            'comment_note': desk_reject_notes[0], # If we reached this point, exactly one valid desk_reject_note was found.
             'index': i # Keep original index for unique directory naming
         })
 
