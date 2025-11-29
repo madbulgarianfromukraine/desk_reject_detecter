@@ -42,7 +42,7 @@ def main_rejection(client: openreview.api.OpenReviewClient) -> None:
 
 
 def main_accepted(client: openreview.api.OpenReviewClient) -> None:
-    global ACCEPTED_RETREVING_BARRIER
+    global ACCEPTED_RETREVING_BARRIER, DESK_REJECTION_IDS, WITHDRAWAL_IDS
     ACCEPTED_INVITATION = f'{CONFERENCE_ID}/-/Submission'
 
     initial_accepted_papers = []
@@ -52,6 +52,22 @@ def main_accepted(client: openreview.api.OpenReviewClient) -> None:
     )
 
     ACCEPTED_RETREVING_BARRIER.wait()
+
+    # Remove any papers that are desk-rejected or withdrawn
+    try:
+        excluded_ids = set(DESK_REJECTION_IDS) | set(WITHDRAWAL_IDS)
+    except Exception:
+        excluded_ids = set()
+
+    if excluded_ids:
+        initial_count = len(initial_accepted_papers)
+        initial_accepted_papers = [
+            note for note in initial_accepted_papers
+            if (note.forum not in excluded_ids and note.id not in excluded_ids)
+        ]
+        removed = initial_count - len(initial_accepted_papers)
+        if removed:
+            print(f"Filtered out {removed} submissions due to desk-rejection/withdrawal before processing accepted.")
 
     print(f"\n--- Processing initially not desk rejects ---")
     submissions_to_process = filter_proper_accepted_papers(client=client, initial_accepted_papers=initial_accepted_papers)
@@ -78,11 +94,12 @@ if __name__ == "__main__":
         password=PASSWORD
     )
 
-    with ThreadPoolExecutor(max_workers=2) as executor:
+    with ThreadPoolExecutor(max_workers=3) as executor:
         # we execute a functions in a concurrent way for two reasons:
         # 1. it is faster(download takes incredibly long)
         # 2. it will randomize the entries of the papers
-        #executor.submit(main_rejection, client)
+        executor.submit(main_rejection, client)
+        executor.submit(main_withdrawal, client)
         executor.submit(main_accepted, client)
 
 
