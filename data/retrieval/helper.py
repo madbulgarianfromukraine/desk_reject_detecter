@@ -41,7 +41,31 @@ def filter_proper_desk_rejections(client: openreview.api.OpenReviewClient, initi
 
     return submissions_to_process
 
-def filter_proper_accepted_papers(client: openreview.api.OpenReviewClient, initial_accepted_papers: List[openreview.api.Note]) -> List[Dict[str, Any]]:
+def filter_proper_accepted_papers(
+    client: openreview.api.OpenReviewClient,
+    initial_accepted_papers: List[openreview.api.Note],
+    dr_submissions_count: int,
+    desk_rejection_ids: Optional[List[str]] = None,
+    withdrawal_ids: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+    # Remove any papers that are desk-rejected or withdrawn (moved from iclr_2025_main.py)
+    try:
+        excluded_ids = set(desk_rejection_ids or []) | set(withdrawal_ids or [])
+    except Exception:
+        excluded_ids = set()
+
+    if excluded_ids:
+        all_unique_forum_ids = {note.forum for note in initial_accepted_papers}
+        ndr_unique_forum_ids = all_unique_forum_ids - excluded_ids
+        initial_accepted_papers = [
+            note for note in initial_accepted_papers
+            if (note.forum not in excluded_ids and note.id not in excluded_ids)
+        ]
+        removed = len(all_unique_forum_ids) - len(ndr_unique_forum_ids)
+        if removed:
+            print(
+                f"Filtered out {removed} submissions due to desk-rejection/withdrawal before processing accepted."
+            )
+
     submissions_to_process = []
     for i, submission in enumerate(initial_accepted_papers):
 
@@ -49,7 +73,7 @@ def filter_proper_accepted_papers(client: openreview.api.OpenReviewClient, initi
         pdf_path = get_note_value(submission, 'pdf')
 
         if pdf_path is None:
-            print(f"❌ Skipping Submission ID {submission.id} and {submission.content["title"]}: No main PDF path found.")
+            print(f"Not Desk Rejected Submission:❌ Skipping Submission ID {submission.id} and {submission.content["title"]}: No main PDF path found.")
             continue
 
         comment_notes = client.get_all_notes(replyto=submission.id, details='content')
