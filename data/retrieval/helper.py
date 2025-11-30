@@ -14,7 +14,7 @@ def filter_proper_desk_rejections(client: openreview.api.OpenReviewClient, initi
         pdf_path = get_note_value(submission, 'pdf')
 
         if pdf_path is None:
-            print(f"❌ Skipping Submission ID {submission.id} and {submission.content["title"]}: No main PDF path found.")
+            print(f"Desk Rejected Submission: ❌ Skipping Submission ID {submission.id} and {submission.content["title"]}: No main PDF path found.")
             continue
 
         # 2. Check for mandatory desk reject comment existence (metadata check)
@@ -29,14 +29,13 @@ def filter_proper_desk_rejections(client: openreview.api.OpenReviewClient, initi
         # 3. CRITICAL FILTER: Check if the amount is exactly 1
         if len(desk_reject_notes) != 1:
             # If 0 (no reason found) or >1 (ambiguous), skip the submission
-            print(f"❌ Skipping Submission ID {submission.id}: Found {len(desk_reject_notes)} desk reject notes (must be exactly 1).")
+            print(f"Desk Rejected Submission: ❌ Skipping Submission ID {submission.id}: Found {len(desk_reject_notes)} desk reject notes (must be exactly 1).")
             continue
 
         # If all checks pass, add the note and its corresponding comment note to the processing list
         submissions_to_process.append({
             'submission': submission,
             'comment_note': desk_reject_notes[0], # If we reached this point, exactly one valid desk_reject_note was found.
-            'index': i # Keep original index for unique directory naming
         })
 
     return submissions_to_process
