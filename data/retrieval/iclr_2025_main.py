@@ -17,6 +17,7 @@ CONFERENCE_ID = 'ICLR.cc/2025/Conference'
 
 DESK_REJECTION_IDS = []
 WITHDRAWAL_IDS = []
+ACCEPTED_RETREVING_BARRIER = Barrier(3) # 2 for rejection and withdrawal and 1 for accepted
 final_csv_data = [] # --- Global Data Structure for CSV Output ---
 
 def main_rejection(client: openreview.api.OpenReviewClient) -> None:
@@ -52,23 +53,6 @@ def main_accepted(client: openreview.api.OpenReviewClient) -> None:
     )
 
     ACCEPTED_RETREVING_BARRIER.wait()
-
-    # Remove any papers that are desk-rejected or withdrawn
-    try:
-        excluded_ids = set(DESK_REJECTION_IDS) | set(WITHDRAWAL_IDS)
-    except Exception:
-        excluded_ids = set()
-
-    if excluded_ids:
-        initial_count = len(initial_accepted_papers)
-        initial_accepted_papers = [
-            note for note in initial_accepted_papers
-            if (note.forum not in excluded_ids and note.id not in excluded_ids)
-        ]
-        removed = initial_count - len(initial_accepted_papers)
-        if removed:
-            print(f"Filtered out {removed} submissions due to desk-rejection/withdrawal before processing accepted.")
-
     print(f"\n--- Processing initially not desk rejects ---")
     submissions_to_process = filter_proper_accepted_papers(
         client=client,
