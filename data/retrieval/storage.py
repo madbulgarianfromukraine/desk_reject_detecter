@@ -6,34 +6,58 @@ import urllib.parse
 import zipfile
 from typing import Optional, List, Dict, Any
 from openreview import OpenReviewException
-import threading
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
 
 from helper import get_note_value
 
-CSV_WRITE_LOCK = threading.Lock()
 
-def download_file(client: openreview.api.OpenReviewClient, note_id: Optional[str], field_name: Optional[str] = "", output_path : str = "main.pdf", is_pdf: bool=False) -> bool:
-    """Handles API call, error checking, and saving for a single file."""
-    try:
+def download_file(client: openreview.api.OpenReviewClient,
+                  note_id: Optional[str],
+                  field_name: Optional[str] = "",
+                  output_path: str = "main.pdf",
+                  is_pdf: bool = False,
+                  timeout: float = 30.0) -> bool:
+    """Download a single file using the already-instantiated OpenReview client with a hard timeout.
+
+    We execute the OpenReview API call in a worker thread and wait up to `timeout` seconds.
+    On timeout or error, we skip and return False. Only after a successful fetch do we write to disk.
+    """
+
+    if not note_id:
+        print("    ❌ Missing note_id for download")
+        return False
+
+    def _fetch() -> bytes:
         if is_pdf:
-            binary_data = client.get_pdf(note_id)
+            return client.get_pdf(note_id)
         else:
-            binary_data = client.get_attachment(id=note_id, field_name=field_name)
+            if not field_name:
+                raise ValueError("field_name is required when downloading an attachment")
+            return client.get_attachment(id=note_id, field_name=field_name)
 
-        with open(output_path, 'wb') as f:
-            f.write(binary_data)
+    with ThreadPoolExecutor(max_workers=1, thread_name_prefix=f"download_{note_id}") as executor:
+        future = executor.submit(_fetch)
+        try:
+            data: bytes = future.result(timeout=timeout)
+        except FuturesTimeout:
+            print(f"    ⏱️ Download Timed Out after {timeout}s for {field_name or 'pdf'} of note {note_id}. Skipping.")
+            return False
+        except OpenReviewException as e:
+            print(f"    ❌ OpenReview error during download of {field_name or 'pdf'} for note {note_id}: {e}")
+            return False
+        except Exception as e:
+            print(f"    ❌ Unexpected error during download of {field_name or 'pdf'} for note {note_id}: {e}")
+            return False
 
-        return True
-
-    except OpenReviewException as e:
-        # Catch 403 Forbidden, 404 Not Found, etc.
-        print(f"    ❌ Download Failed: {field_name} for {note_id} is restricted/missing. Error: {e}")
-        return False
+    # Ensure parent directory exists and write file only after successful fetch
+    try:
+        with open(output_path, "wb") as f:
+            f.write(data)
     except Exception as e:
-        # Catch file system or other errors
-        print(f"    ❌ Download Failed: Non-API error for {field_name}. Error: {e}")
+        print(f"    ❌ Failed to write output file '{output_path}': {e}")
         return False
 
+    return True
 
 def store_main_and_supplemental_materials(client: openreview.api.OpenReviewClient,submissions_to_process: List[Dict[str, Any]], csv_data: List[Dict[str, Any]], desk_rejection: bool = False) -> None:
     for item in submissions_to_process:
