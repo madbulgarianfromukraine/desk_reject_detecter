@@ -1,7 +1,9 @@
 import random
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import openreview.api
 
 from typing import Optional, List, Dict, Any
+from data.retrieval.util.threading import num_workers
 
 def get_note_value(note: openreview.api.Note, field: str = "") -> Optional[str]:
     """Safely extracts the string 'value' from a nested note content dictionary."""
@@ -66,27 +68,49 @@ def filter_proper_accepted_papers(
                 f"Filtered out {removed} submissions due to desk-rejection/withdrawal before processing accepted."
             )
 
-    submissions_to_process = []
-    for i, submission in enumerate(initial_accepted_papers):
+    submissions_to_process: List[Dict[str, Any]] = []
 
+    def __process_accepted_paper(submission: openreview.api.Note) -> Optional[Dict[str, Any]]:
         # 1. Check for mandatory PDF path
         pdf_path = get_note_value(submission, 'pdf')
-
         if pdf_path is None:
-            print(f"Not Desk Rejected Submission:❌ Skipping Submission ID {submission.id} and {submission.content["title"]}: No main PDF path found.")
-            continue
+            print(f"Not Desk Rejected Submission:❌ Skipping Submission ID {submission.id} and {submission.content['title']}: No main PDF path found.")
+            return None
 
-        comment_notes = client.get_all_notes(replyto=submission.id, details='content')
+        # 2. Fetch related notes and check for decision
+        try:
+            comment_notes = client.get_all_notes(replyto=submission.id, details='content')
+        except Exception as e:
+            print(f"Not Desk Rejected Submission:❌ Skipping Submission ID {submission.id}: failed to fetch comment notes: {e}")
+            return None
 
+        has_decision = False
         for note in comment_notes:
-            # We check for the presence of the required decision field
             if get_note_value(note=note, field="decision"):
-                submissions_to_process.append({
-                    'submission': submission,
-                    'comment_note': None
-                })
-            else:
-                print(f"Not Desk Rejected Submission:❌ Skipping Submission ID {submission.id} and {submission.content["title"]}: No Decision Note found.")
+                has_decision = True
+                break
+
+        if has_decision:
+            return {
+                'submission': submission,
+                'comment_note': None
+            }
+        else:
+            print(f"Not Desk Rejected Submission:❌ Skipping Submission ID {submission.id} and {submission.content['title']}: No Decision Note found.")
+            return None
+
+    with ThreadPoolExecutor(max_workers=num_workers(), thread_name_prefix=f"NDR-filtering-") as executor:
+        future_map = {executor.submit(__process_accepted_paper, sub): sub for sub in initial_accepted_papers}
+        for future in as_completed(future_map):
+            try:
+                result = future.result()
+            except Exception as e:
+                # Log and skip this submission on unexpected worker error
+                sub = future_map[future]
+                print(f"Not Desk Rejected Submission:❌ Skipping Submission ID {sub.id}: worker error: {e}")
+                continue
+            if result is not None:
+                submissions_to_process.append(result)
 
     MAX_NDR_SAMPLE_SIZE = 3 * dr_submissions_count
     current_ndr_count = len(submissions_to_process)
