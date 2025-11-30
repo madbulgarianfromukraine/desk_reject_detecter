@@ -17,9 +17,7 @@ CONFERENCE_ID = 'ICLR.cc/2025/Conference'
 
 DESK_REJECTION_IDS = []
 WITHDRAWAL_IDS = []
-ACCEPTED_RETREVING_BARRIER = Barrier(3) # 2 to wait for desk-rejected and withdrawn submissions and 1 to wait for the accepted, so that it can start
-# --- Global Data Structure for CSV Output ---
-final_csv_data = []
+final_csv_data = [] # --- Global Data Structure for CSV Output ---
 
 def main_rejection(client: openreview.api.OpenReviewClient) -> None:
     global DESK_REJECTION_IDS, ACCEPTED_RETREVING_BARRIER
@@ -44,7 +42,7 @@ def main_rejection(client: openreview.api.OpenReviewClient) -> None:
 
 
 def main_accepted(client: openreview.api.OpenReviewClient) -> None:
-    global ACCEPTED_RETREVING_BARRIER, DESK_REJECTION_IDS, WITHDRAWAL_IDS
+    global DESK_REJECTION_IDS, WITHDRAWAL_IDS
     ACCEPTED_INVITATION = f'{CONFERENCE_ID}/-/Submission'
 
     initial_accepted_papers = []
@@ -72,7 +70,13 @@ def main_accepted(client: openreview.api.OpenReviewClient) -> None:
             print(f"Filtered out {removed} submissions due to desk-rejection/withdrawal before processing accepted.")
 
     print(f"\n--- Processing initially not desk rejects ---")
-    submissions_to_process = filter_proper_accepted_papers(client=client, initial_accepted_papers=initial_accepted_papers)
+    submissions_to_process = filter_proper_accepted_papers(
+        client=client,
+        initial_accepted_papers=initial_accepted_papers,
+        dr_submissions_count=len(DESK_REJECTION_IDS),
+        desk_rejection_ids=DESK_REJECTION_IDS,
+        withdrawal_ids=WITHDRAWAL_IDS,
+    )
 
     print(f"\n--- Starting Download and Processing for {len(submissions_to_process)} Valid NDR-Submissions ---")
 
