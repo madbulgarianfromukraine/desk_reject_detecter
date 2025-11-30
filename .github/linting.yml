@@ -1,0 +1,37 @@
+name: Python Linting and Formatting Check
+
+# 1. Triggers: Define when the workflow should run
+on:
+  push:
+    branches: [main] # Run on pushes to main and develop branches
+  pull_request:
+    branches: [main]          # Run on pull requests targeting main
+  workflow_dispatch:            # Allows manual execution
+
+# 2. Jobs: Define the tasks to be executed
+jobs:
+  linting:
+    name: Code Quality Check
+    runs-on: ubuntu-latest  # Use the standard Linux runner
+
+    # Steps: Define the sequence of commands
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4  # Action to clone the repository code
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11' # Specify the desired Python version
+
+      - name: Install Dependencies
+        # Assuming linting dependencies (ruff, black, etc.) are listed in requirements.txt
+        run: pip install -r requirements.txt black ruff
+
+      - name: 1. Run Static Analysis (Ruff)
+        # Ruff checks for logical errors and style violations. Fails if errors are found.
+        run: ruff check .
+
+      - name: 2. Check Code Formatting (Black)
+        # Black ensures code style consistency. --check ensures it fails if files need formatting.
+        run: black . --check
