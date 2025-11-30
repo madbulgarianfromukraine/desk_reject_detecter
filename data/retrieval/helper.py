@@ -1,3 +1,4 @@
+import random
 import openreview.api
 
 from typing import Optional, List, Dict, Any
@@ -56,6 +57,22 @@ def filter_proper_accepted_papers(client: openreview.api.OpenReviewClient, initi
         for note in comment_notes:
             # We check for the presence of the required decision field
             if get_note_value(note=note, field="decision"):
-                submissions_to_process.append(note)
+                submissions_to_process.append({
+                    'submission': submission,
+                    'comment_note': None
+                })
+            else:
+                print(f"Not Desk Rejected Submission:❌ Skipping Submission ID {submission.id} and {submission.content["title"]}: No Decision Note found.")
+
+    MAX_NDR_SAMPLE_SIZE = 3 * dr_submissions_count
+    current_ndr_count = len(submissions_to_process)
+    if current_ndr_count > MAX_NDR_SAMPLE_SIZE:
+        random.shuffle(submissions_to_process)
+
+        # b. Sample the required number of items from the shuffled list
+        submissions_to_process = submissions_to_process[:MAX_NDR_SAMPLE_SIZE]
+
+        print(f"Sampling Applied: Original NDR count ({current_ndr_count}) > Max allowed ({MAX_NDR_SAMPLE_SIZE}).")
+        print(f"Final NDR sample size: {len(submissions_to_process)}")
 
     return submissions_to_process
