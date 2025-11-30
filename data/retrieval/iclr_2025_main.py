@@ -6,7 +6,7 @@ import openreview.api
 from dotenv import load_dotenv
 
 from data.retrieval.helper import filter_proper_desk_rejections, filter_proper_accepted_papers
-from data.retrieval.storage import store_main_and_supplemental_materials, write_to_csv
+from data.retrieval.storage import process_single_submission, write_to_csv
 
 
 load_dotenv(verbose=True)
@@ -35,9 +35,11 @@ def main_rejection(client: openreview.api.OpenReviewClient) -> None:
     print(f"\n--- Processing initial desk rejects ---")
     submissions_to_process = filter_proper_desk_rejections(client=client, initial_desk_rejections=initial_desk_rejections)
 
-    print(f"\n--- Starting Download and Processing for {len(submissions_to_process)} Valid Submissions ---")
+    print(f"\n--- Starting Download and Processing for {len(submissions_to_process)} Valid DR-Submissions ---")
 
-    store_main_and_supplemental_materials(client=client, submissions_to_process=submissions_to_process, csv_data=final_csv_data, desk_rejection=True)
+    # Process each submission individually to avoid holding the GIL for long loops
+    for item in submissions_to_process:
+        process_single_submission(client=client, item=item, csv_data=final_csv_data, desk_rejection=True)
 
 
 
@@ -72,9 +74,11 @@ def main_accepted(client: openreview.api.OpenReviewClient) -> None:
     print(f"\n--- Processing initially not desk rejects ---")
     submissions_to_process = filter_proper_accepted_papers(client=client, initial_accepted_papers=initial_accepted_papers)
 
-    print(f"\n--- Starting Download and Processing for {len(submissions_to_process)} Valid Submissions ---")
+    print(f"\n--- Starting Download and Processing for {len(submissions_to_process)} Valid NDR-Submissions ---")
 
-    store_main_and_supplemental_materials(client=client, submissions_to_process=submissions_to_process, csv_data=final_csv_data, desk_rejection=False)
+    # Process each submission individually to avoid holding the GIL for long loops
+    for item in submissions_to_process:
+        process_single_submission(client=client, item=item, csv_data=final_csv_data, desk_rejection=False)
 
 def main_withdrawal(client: openreview.api.OpenReviewClient) -> None:
     global WITHDRAWAL_IDS, ACCEPTED_RETREVING_BARRIER
