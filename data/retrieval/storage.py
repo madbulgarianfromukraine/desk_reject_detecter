@@ -167,7 +167,7 @@ def store_main_and_supplemental_materials(client: openreview.api.OpenReviewClien
 
 def write_to_csv(csv_data: List[Dict[str, Any]]) -> None:
 
-    CSV_FILENAME = "data/iclr/data/desk_rejected_submissions.csv"
+    CSV_FILENAME = "data/iclr/data/submissions.csv"
     if csv_data:
         csv_fieldnames = ['submission_id', 'directory_name', 'status', 'desk_reject_comments', 'supplemental_downloaded']
 
