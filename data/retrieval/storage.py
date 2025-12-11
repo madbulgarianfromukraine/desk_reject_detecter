@@ -151,7 +151,7 @@ def process_single_submission(client: openreview.api.OpenReviewClient, item: Dic
         'submission_id': submission_id,
         'directory_name': base_dir,
         'status': 'Desk Rejected' if desk_rejection else "Not Desk Rejected",
-        'desk_reject_comments': comment_note.content["desk_reject_comments"] if desk_rejection else "",
+        'desk_reject_comments': comment_note.content["desk_reject_comments"]["value"] if desk_rejection else "",
         'supplemental_downloaded': supplemental_downloaded
     })
 
