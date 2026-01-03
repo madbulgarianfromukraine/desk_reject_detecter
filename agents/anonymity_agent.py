@@ -1,5 +1,5 @@
-from schemas import AnonymityCheck
-from utils import create_agent_chain
+from core.schemas import AnonymityCheck
+from core.utils import create_agent_chain
 
 SYSTEM_PROMPT = """You are the Anonymity Agent. This is a Double-Blind review.
 Analyze for:

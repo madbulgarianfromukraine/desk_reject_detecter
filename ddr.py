@@ -1,7 +1,7 @@
 import os
 from typing import List
-from utils import encode_image
-from schemas import FinalDecision, AnalysisReport
+from core.utils import encode_image
+from core.schemas import FinalDecision, AnalysisReport
 
 # Import Agents
 from agents.formatting_agent import formatting_agent

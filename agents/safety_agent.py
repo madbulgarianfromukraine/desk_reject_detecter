@@ -1,5 +1,5 @@
-from schemas import SafetyCheck
-from utils import create_agent_chain
+from core.schemas import SafetyCheck
+from core.utils import create_agent_chain
 
 SYSTEM_PROMPT = """You are the Safety Agent. You deal with FATAL ethical violations.
 Analyze for:

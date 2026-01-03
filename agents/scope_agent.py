@@ -1,5 +1,5 @@
-from schemas import ScopeCheck
-from utils import create_agent_chain
+from core.schemas import ScopeCheck
+from core.utils import create_agent_chain
 
 SYSTEM_PROMPT = """You are the Scope & Quality Agent.
 Analyze for:

@@ -3,7 +3,7 @@ from typing import List, Optional
 from pathlib import Path
 import google.genai as genai
 from concurrent.futures import ThreadPoolExecutor
-from utils import STYLE_GUIDES_DEFAULT, SUPPORTED_MIME_TYPES
+from core.utils import STYLE_GUIDES_DEFAULT, SUPPORTED_MIME_TYPES
 import mimetypes
 
 

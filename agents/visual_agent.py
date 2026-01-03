@@ -1,5 +1,5 @@
-from schemas import VisualIntegrityCheck
-from utils import create_agent_chain
+from core.schemas import VisualIntegrityCheck
+from core.utils import create_agent_chain
 
 SYSTEM_PROMPT = """You are the Visual Integrity Agent.
 Analyze visual elements for:

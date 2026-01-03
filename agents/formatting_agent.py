@@ -1,5 +1,5 @@
-from schemas import FormattingCheck
-from utils import create_agent_chain
+from core.schemas import FormattingCheck
+from core.utils import create_agent_chain
 
 SYSTEM_PROMPT = """You are the Formatting Check Agent for ICLR. 
 Analyze the submission for:
