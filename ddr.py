@@ -3,15 +3,11 @@ from core.utils import encode_image
 from core.schemas import FinalDecision, AnalysisReport
 
 # Import Agents
-from agents.formatting_agent import formatting_agent
-from agents.policy_agent import policy_agent
-from agents.visual_agent import visual_agent
-from agents.anonymity_agent import anonymity_agent
-from agents.scope_agent import scope_agent
-from agents.safety_agent import safety_agent
+import agents
+import os
 
 
-def desk_rejection_system(paper_text_content: str, image_paths: List[str] = []):
+def desk_rejection_system(path_sub_dir: os.PathLike, image_paths: List[str]) -> Any:
     """
     Main Orchestrator: Calls all agents and aggregates the decision.
     """
@@ -22,22 +18,22 @@ def desk_rejection_system(paper_text_content: str, image_paths: List[str] = []):
 
     # 1. Run all agents
     print("Running Formatting Check...")
-    formatting_res = formatting_agent(paper_text_content, encoded_images)
+    formatting_res = agents.formatting_agent(path_sub_dir)
 
     print("Running Policy Check...")
-    policy_res = policy_agent(paper_text_content, encoded_images)
+    policy_res = agents.policy_agent(path_sub_dir)
 
     print("Running Visual Integrity Check...")
-    visual_res = visual_agent(paper_text_content, encoded_images)
+    visual_res = agents.visual_agent(path_sub_dir)
 
     print("Running Anonymity Check...")
-    anonymity_res = anonymity_agent(paper_text_content, encoded_images)
+    anonymity_res = agents.anonymity_agent(path_sub_dir)
 
     print("Running Scope Check...")
-    scope_res = scope_agent(paper_text_content, encoded_images)
+    scope_res = agents.scope_agent(path_sub_dir)
 
     print("Running Safety Check...")
-    safety_res = safety_agent(paper_text_content, encoded_images)
+    safety_res = agents.safety_agent(path_sub_dir)
 
     # 2. Decision Logic
     # Define Fatal Categories
@@ -49,50 +45,10 @@ def desk_rejection_system(paper_text_content: str, image_paths: List[str] = []):
         (policy_res, "Policy")
     ]
 
-    final_decision = "NO"
-    primary_reason = "None"
-    confidence = 0.95
-
-    # Check Fatal First
-    for res, category in fatal_checks:
-        if res.violation_found:
-            final_decision = "YES"
-            primary_reason = category
-            confidence = 1.0
-            break
-
-    # Check Subjective (Scope)
-    if final_decision == "NO" and scope_res.violation_found:
-        final_decision = "YES"
-        primary_reason = "Scope"
-        confidence = 0.85
-
-    # 3. Build Final Report
-    final_report = FinalDecision(
-        desk_reject_decision=final_decision,
-        primary_reason_category=primary_reason,
-        confidence_score=confidence,
-        analysis=AnalysisReport(
-            safety_check=safety_res,
-            anonymity_check=anonymity_res,
-            visual_integrity_check=visual_res,
-            formatting_check=formatting_res,
-            policy_check=policy_res,
-            scope_check=scope_res
-        )
-    )
-
-    return final_report.model_dump_json(indent=2)
 
 
-if __name__ == "__main__":
-    # --- USAGE EXAMPLE ---
-    sample_text = """
-    Abstract. This paper presents a new algorithm.
-    Introduction. We optimize X using Y...
-    """
-    # Replace [] with ["page1.png"] if you have files
-    result = desk_rejection_system(sample_text, [])
 
-    print("\n=== FINAL REPORT ===\n")
-    print(result)
+
+
+    return "".model_dump_json(indent=2)
+
