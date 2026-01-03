@@ -1,4 +1,3 @@
-import os
 from typing import List
 from core.utils import encode_image
 from core.schemas import FinalDecision, AnalysisReport
