@@ -1,4 +1,4 @@
-from typing import List,Any
+from typing import Union
 from core.utils import encode_image
 from core.schemas import FinalDecision, AnalysisReport
 
@@ -8,7 +8,7 @@ import os
 import concurrent.futures
 
 
-def desk_rejection_system(path_sub_dir: os.PathLike, image_paths: List[str]) -> FinalDecision:
+def desk_rejection_system(path_sub_dir: Union[os.PathLike, str]) -> FinalDecision:
     """
     Main Orchestrator: Calls all agents and aggregates the decision.
     """
@@ -26,7 +26,7 @@ def desk_rejection_system(path_sub_dir: os.PathLike, image_paths: List[str]) -> 
     # 2. Run them in parallel
     # max_workers=None defaults to a sensible number based on your CPU
     agent_results = {}
-    with concurrent.futures.ThreadPoolExecutor() as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
         # Submit all functions with the same argument
         future_to_agent = {executor.submit(func, path_sub_dir): func.__name__ for func in agent_funcs}
 

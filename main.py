@@ -1,8 +1,11 @@
 import fire
 import sys
 import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from ddr import desk_rejection_system
+from core.log import LOG
+from core.metrics import Metrics
 
 
 
@@ -11,44 +14,58 @@ class DeskRejectionCLI:
     A CLI tool for analyzing ICLR paper submissions for desk rejection criteria.
     """
 
-    def determine_desk_rejection(self, directory: str):
+    def determine_desk_rejection(self, directory: str) -> :
         """
         Runs the full protocol and outputs a binding YES/NO decision.
-
         Usage: python cli.py determine_desk_rejection ./my_paper_folder
         """
-        print(f"--- DETERMINING DESK REJECTION FOR: {directory} ---")
-
-        pdf_path, style_paths = self._find_files(directory)
-        print(f"Found PDF: {os.path.basename(pdf_path)}")
+        LOG.debug(f"--- DETERMINING DESK REJECTION FOR: {directory} ---")
 
         try:
             # Call the pipeline from main.py
-            json_result = desk_rejection_pipeline(pdf_path, style_paths)
-            print("\n=== FINAL DECISION ===")
-            print(json_result)
+            final_decision = desk_rejection_system(directory)
+            LOG.info(final_decision)
+            return final_decision
         except Exception as e:
-            print(f"Pipeline failed: {e}")
+            LOG.error(f"Pipeline failed: {e}")
             sys.exit(1)
 
-    def evaluate_desk_rejection(self, directory: str):
+    def evaluate_desk_rejection(self, directory: str, parallel: bool = False) -> Metrics:
         """
-        Runs an evaluation and produces a report without a binding decision.
-
+        Runs an evaluation of all submissions in the directory and produces a report without a binding decision.
         Usage: python cli.py evaluate_desk_rejection ./my_paper_folder
         """
-        print(f"--- EVALUATING SUBMISSION: {directory} ---")
+        eval_results = {}
+        LOG.debug(f"--- EVALUATING SUBMISSION: {directory} ---")
+        if parallel:
+            with ThreadPoolExecutor() as executor:
+                future_to_eval_result = {executor.submit(desk_rejection_system, diry): diry for diry in os.listdir(directory) if os.path.isdir(diry)}
 
-        pdf_path, style_paths = self._find_files(directory)
+                for future in as_completed(future_to_eval_result):
+                    evaluation_paper_result = future_to_eval_result[future]
+                    try:
+                        eval_results[evaluation_paper_result] = future.result()
+                        LOG.debug(f"{evaluation_paper_result} determination of desk rejection completed.")
+                    except Exception as exc:
+                        LOG.error(f"{evaluation_paper_result} generated an exception: {exc}")
 
-        try:
-            # We reuse the same pipeline but wrapping it differently for the user
-            json_result = desk_rejection_system(directory)
-            print("\n=== EVALUATION REPORT ===")
-            print(json_result)
-        except Exception as e:
-            print(f"Evaluation failed: {e}")
-            sys.exit(1)
+        else:
+            for diry in os.listdir(directory):
+
+                    evaluation_paper_result = desk_rejection_system(diry)
+                    eval_results[diry] = evaluation_paper_result
+            try:
+                # We reuse the same pipeline but wrapping it differently for the user
+                final_decision = desk_rejection_system(directory)
+                LOG.info(final_decision)
+
+            except Exception as e:
+                print(f"Evaluation failed: {e}")
+                sys.exit(1)
+
+
+        return Metrics.evaluate_metrics(eval_results)
+
 
 
 if __name__ == "__main__":
