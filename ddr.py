@@ -8,14 +8,11 @@ import os
 import concurrent.futures
 
 
-def desk_rejection_system(path_sub_dir: os.PathLike, image_paths: List[str]) -> Any:
+def desk_rejection_system(path_sub_dir: os.PathLike, image_paths: List[str]) -> FinalDecision:
     """
     Main Orchestrator: Calls all agents and aggregates the decision.
     """
     print("--- Starting Desk Rejection Protocol ---")
-
-    # Encode images once
-    encoded_images = [encode_image(path) for path in image_paths]
 
     agent_funcs = [
         agents.formatting_agent,
@@ -52,5 +49,5 @@ def desk_rejection_system(path_sub_dir: os.PathLike, image_paths: List[str]) -> 
     )
 
     final_decision = agents.final_decision_agent(analysis_report=analysis_report)
-    return final_decision.model_dump_json(indent=2)
+    return final_decision
 
