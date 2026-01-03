@@ -1,11 +1,13 @@
 import base64
-from typing import List, Union, Dict, Any
+from typing import List, Union, Dict, Any, Callable
 from pathlib import Path
 from langchain_core.messages import SystemMessage, HumanMessage
 
 from core.cache_manager import get_optimized_fallback_mime
 from core.config import llm  # Import the configured LLM
 import os
+
+from core.schemas import AnalysisReport
 
 __REQUIREMENTS_DIR = '../data/iclr/requirements/'
 STYLE_GUIDES_DEFAULT = [f for f in Path(__REQUIREMENTS_DIR).iterdir() if f.is_file()]
@@ -39,7 +41,9 @@ def add_supplemental_files(path_to_supplemental_files: Union[os.PathLike, str]) 
             if not file.startswith("."):
                 supplemental_files_paths.append(os.path.join(root, file))
 
-def create_agent_chain(pydantic_model, system_instructions):
+    return supplemental_files_paths
+
+def create_agent_chain(pydantic_model, system_instructions) -> Callable:
     """Factory function that creates a specialized agent."""
     structured_llm = llm.with_structured_output(pydantic_model)
 
@@ -80,13 +84,35 @@ def create_agent_chain(pydantic_model, system_instructions):
                 )
 
             supplemental_files_dict_list.insert(0,
-                                                {"type": "text", "text": f"Here are the supplemental files for the papre"})
+                                                {"type": "text", "text": "Here are the supplemental files for the paper"})
 
             messages.append(
                 HumanMessage(
                     content=supplemental_files_dict_list
                 )
             )
+
+        return structured_llm.invoke(messages)
+
+    return run_agent
+
+def create_final_agent(pydantic_model, system_instructions) -> Callable:
+    structured_llm = llm.with_structured_output(pydantic_model)
+
+    def run_agent(analysis_report: AnalysisReport):
+        human_message_content = [
+            {
+                "type": "text",
+                "text": f"Here is the result of {key}\n{val}\n"
+            }
+            for key, val in vars(analysis_report).items()
+            if key.endswith("_check")
+        ]
+
+        messages = [
+            SystemMessage(content=system_instructions),
+            HumanMessage(content=human_message_content)
+        ]
 
         return structured_llm.invoke(messages)
 
