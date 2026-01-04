@@ -26,7 +26,7 @@ class DeskRejectionCLI:
 
         configure_logging(DeskRejectionCLI.__log_level)
 
-    def determine_desk_rejection(self, directory: str) -> FinalDecision:
+    def determine_desk_rejection(self, directory: str) -> str:
         """
         Runs the full protocol and outputs a binding YES/NO decision. Usage: python cli.py determine_desk_rejection ./my_paper_folder
         :param directory: Directory of the paper submission.
@@ -36,7 +36,7 @@ class DeskRejectionCLI:
         try:
             # Call the pipeline from main.py
             final_decision = desk_rejection_system(directory)
-            return final_decision
+            return final_decision.model_dump_json()
         except Exception as e:
             LOG.error(f"Pipeline failed: {e}")
             sys.exit(1)
