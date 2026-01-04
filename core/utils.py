@@ -5,29 +5,10 @@ from langchain_core.messages import SystemMessage, HumanMessage
 
 from core.cache_manager import get_optimized_fallback_mime
 from core.config import llm  # Import the configured LLM
+from core.constants import SKIP_DIRS
 import os
 
 from core.schemas import AnalysisReport
-
-__REQUIREMENTS_DIR = '../data/iclr/requirements/'
-STYLE_GUIDES_DEFAULT = [f for f in Path(__REQUIREMENTS_DIR).iterdir() if f.is_file()]
-
-# Exhaustive list of standard supported types for Gemini 2.5
-SUPPORTED_MIME_TYPES = {
-    'application/pdf', 'text/plain',
-    'image/png', 'image/jpeg', 'image/webp', 'image/heic', 'image/heif',
-    'video/mp4', 'video/mpeg', 'video/mov', 'video/avi', 'video/x-flv',
-    'video/mpg', 'video/webm', 'video/wmv', 'video/3gpp',
-    'audio/wav', 'audio/mp3', 'audio/aiff', 'audio/aac', 'audio/ogg',
-    'audio/flac', 'audio/m4a', 'audio/mpga', 'audio/pcm'
-}
-#Skip dirs for efficient loading of supplemental files
-SKIP_DIRS = {'.venv', 'CVS', '.git', '__pycache__', '.pytest_cache'}
-
-def encode_image(image_path: str):
-    """Encodes a local image to base64."""
-    with open(image_path, "rb") as image_file:
-        return base64.b64encode(image_file.read()).decode('utf-8')
 
 
 def add_supplemental_files(path_to_supplemental_files: Union[os.PathLike, str]) -> List[Union[os.PathLike, str]]:
