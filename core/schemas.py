@@ -35,6 +35,7 @@ class PolicyCheck(BaseModel):
 class ScopeCheck(BaseModel):
     violation_found: bool
     issue_type: Literal["Scope", "Language", "None"] = "None"
+    evidence_snippet: str
     reasoning: str
 
 # Final Report Schema

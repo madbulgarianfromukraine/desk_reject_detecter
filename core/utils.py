@@ -14,9 +14,9 @@ from core.schemas import AnalysisReport
 def add_supplemental_files(path_to_supplemental_files: Union[os.PathLike, str]) -> List[Union[os.PathLike, str]]:
     supplemental_files_paths = []
 
-    for root, dirs, files in os.walk(f".{path_to_supplemental_files}"):
+    for root, dirs, files in os.walk(f"{path_to_supplemental_files}"):
         # Modifying dirs[:] in-place prunes the search tree
-        dirs[:] = [d for d in dirs if d not in SKIP_DIRS and not d.startswith('.')]
+        dirs[:] = [d for d in dirs if d not in SKIP_DIRS and not d.startswith('.') and not d.startswith("_")]
 
         for file in files:
             if not file.startswith("."):
@@ -29,7 +29,7 @@ def create_agent_chain(pydantic_model, system_instructions) -> Callable:
     structured_llm = llm.with_structured_output(pydantic_model)
 
     def run_agent(path_to_sub_dir):
-        main_pdf_bytes = open("/path/to/your/test.pdf", "rb").read()
+        main_pdf_bytes = open(f'{path_to_sub_dir}/main_paper.pdf', "rb").read()
         main_pdf_base64 = base64.b64encode(main_pdf_bytes).decode("utf-8")
 
         content = [
@@ -51,10 +51,11 @@ def create_agent_chain(pydantic_model, system_instructions) -> Callable:
             supplemental_files = add_supplemental_files(f'{path_to_sub_dir}/supplemental_files')
             supplemental_files_dict_list : List[Dict[str, Any]] = []
 
-            supplemental_file_bytes = open("/path/to/your/test.pdf", "rb").read()
-            supplemental_file_base64 = base64.b64encode(supplemental_file_bytes).decode("utf-8")
 
             for supplemental_file in supplemental_files:
+                supplemental_file_bytes = open(supplemental_file, "rb").read()
+                supplemental_file_base64 = base64.b64encode(supplemental_file_bytes).decode("utf-8")
+
                 supplemental_files_dict_list.append(
                     {
                         "type": "file",

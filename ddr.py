@@ -13,27 +13,27 @@ def desk_rejection_system(path_sub_dir: Union[os.PathLike, str]) -> FinalDecisio
     """
     print("--- Starting Desk Rejection Protocol ---")
 
-    agent_funcs = [
-        agents.formatting_agent,
-        agents.policy_agent,
-        agents.visual_agent,
-        agents.anonymity_agent,
-        agents.scope_agent,
-        agents.safety_agent
-    ]
+    agent_funcs = {
+        agents.formatting_agent : 'formatting_check',
+        agents.policy_agent : 'policy_check',
+        agents.visual_agent : 'visual_integrity_check',
+        agents.anonymity_agent : 'anonymity_check',
+        agents.scope_agent : 'scope_check',
+        agents.safety_agent : 'safety_check',
+    }
 
     # 2. Run them in parallel
     # max_workers=None defaults to a sensible number based on your CPU
     agent_results = {}
     with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
         # Submit all functions with the same argument
-        future_to_agent = {executor.submit(func, path_sub_dir): func.__name__ for func in agent_funcs}
+        future_to_agent = {executor.submit(func, path_sub_dir): key for func, key in agent_funcs.items()}
 
         for future in concurrent.futures.as_completed(future_to_agent):
             agent_name = future_to_agent[future]
             try:
                 agent_results[agent_name] = future.result()
-                print(f"{agent_name} Check completed.")
+                print(f"{agent_name} completed.")
             except Exception as exc:
                 print(f"{agent_name} generated an exception: {exc}")
 
