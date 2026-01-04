@@ -4,7 +4,7 @@ import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from ddr import desk_rejection_system
-from core.log import LOG
+from core.log import LOG, configure_logging
 from core.schemas import FinalDecision
 from core.metrics import evaluate_submission_answers_only, evaluate_submission_full
 
@@ -15,17 +15,27 @@ class DeskRejectionCLI:
     A CLI tool for analyzing ICLR paper submissions for desk rejection criteria.
     """
 
+    def __init__(self, log_level: str = "WARNING") -> None:
+        """
+        Constructs a new TSCloudCTL CLI instance and does initial setup before the subcommand is executed by Fire.
+
+        :param log_level: The log level to use throughout the program
+        """
+        super().__init__()
+        DeskRejectionCLI.__log_level = log_level.strip().upper()
+
+        configure_logging(DeskRejectionCLI.__log_level)
+
     def determine_desk_rejection(self, directory: str) -> FinalDecision:
         """
         Runs the full protocol and outputs a binding YES/NO decision. Usage: python cli.py determine_desk_rejection ./my_paper_folder
         :param directory: Directory of the paper submission.
         """
-        LOG.debug(f"--- DETERMINING DESK REJECTION FOR: {directory} ---")
+        LOG.debug(f"--- DETERMINING DESK REJECTION FOR: {directory.split(sep='/')[-1]} ---")
 
         try:
             # Call the pipeline from main.py
             final_decision = desk_rejection_system(directory)
-            LOG.info(final_decision)
             return final_decision
         except Exception as e:
             LOG.error(f"Pipeline failed: {e}")
@@ -36,11 +46,12 @@ class DeskRejectionCLI:
         """
         Runs an evaluation of all submissions in the directory and produces a report without a binding decision.
         Usage: python cli.py evaluate_desk_rejection ./my_paper_folder
+        :param directory: Directory of the paper submission.
         :param parallel: Whether to run in parallel mode.
         :param answers_only: Evaluate only the precision of the answer or also consider the precision of the reason for desk rejection.
         """
         eval_results = {}
-        LOG.debug(f"--- EVALUATING SUBMISSION: {directory} ---")
+        LOG.debug(f"--- EVALUATING {directory.split(sep='/')[-1]} ---")
         if parallel:
             with ThreadPoolExecutor() as executor:
                 future_to_eval_result = {executor.submit(desk_rejection_system, diry): diry for diry in os.listdir(directory) if os.path.isdir(diry)}
@@ -70,7 +81,7 @@ class DeskRejectionCLI:
 
         if answers_only:
             return evaluate_submission_answers_only(evaluation_results=eval_results)
-        return evaluation_submission_full(evaluation_results=eval_results)
+        return evaluate_submission_full(evaluation_results=eval_results)
 
 
 
