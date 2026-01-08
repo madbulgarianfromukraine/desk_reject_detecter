@@ -1,9 +1,9 @@
 import base64
 from typing import List, Union, Dict, Any, Callable
 from pathlib import Path
-from langchain_core.messages import SystemMessage, HumanMessage
+from langchain_core.messages import SystemMessage, HumanMessage, BaseMessage
 
-from core.cache_manager import get_optimized_fallback_mime
+from core.cache_manager import get_optimized_fallback_mime, get_style_guide_content
 from core.config import llm  # Import the configured LLM
 from core.constants import SKIP_DIRS
 import os
@@ -26,14 +26,22 @@ def add_supplemental_files(path_to_supplemental_files: Union[os.PathLike, str]) 
 
 def create_agent_chain(pydantic_model, system_instructions) -> Callable:
     """Factory function that creates a specialized agent."""
-    structured_llm = llm.with_structured_output(pydantic_model)
+    structured_llm = llm.with_structured_output(pydantic_model, include_raw=True)
 
     def run_agent(path_to_sub_dir):
-        main_pdf_bytes = open(f'{path_to_sub_dir}/main_paper.pdf', "rb").read()
-        main_pdf_base64 = base64.b64encode(main_pdf_bytes).decode("utf-8")
+        # 1. Start with the style guides (leveraging OpenAI Prompt Caching)
+        messages : List[BaseMessage] = [
+            SystemMessage(content=get_style_guide_content()),
+            SystemMessage(content=system_instructions),
+        ]
 
-        content = [
-            {"type": "text", "text": f"Here is the main.pdf for the paper"},
+        # 2. Add the main paper
+        main_pdf_path = f'{path_to_sub_dir}/main_paper.pdf'
+        with open(main_pdf_path, "rb") as f:
+            main_pdf_base64 = base64.b64encode(f.read()).decode("utf-8")
+
+        main_content = [
+            {"type": "text", "text": "Here is the main_paper.pdf"},
             {
                 "type": "file",
                 "source_type": "base64",
@@ -41,45 +49,37 @@ def create_agent_chain(pydantic_model, system_instructions) -> Callable:
                 "data": main_pdf_base64,
             }
         ]
+        messages.append(HumanMessage(content=main_content))
 
-        messages = [
-            SystemMessage(content=system_instructions),
-            HumanMessage(content=content)
-        ]
-
+        # 3. Add supplemental files
         if os.path.exists(f"{path_to_sub_dir}/supplemental_files"):
             supplemental_files = add_supplemental_files(f'{path_to_sub_dir}/supplemental_files')
-            supplemental_files_dict_list : List[Dict[str, Any]] = []
-
+            supplemental_content = [{"type": "text", "text": "Here are the supplemental files for the paper:"}]
 
             for supplemental_file in supplemental_files:
-                supplemental_file_bytes = open(supplemental_file, "rb").read()
-                supplemental_file_base64 = base64.b64encode(supplemental_file_bytes).decode("utf-8")
-
-                supplemental_files_dict_list.append(
-                    {
+                mime = get_optimized_fallback_mime(supplemental_file)
+                try:
+                    with open(supplemental_file, "rb") as f:
+                        file_data = base64.b64encode(f.read()).decode("utf-8")
+                    
+                    supplemental_content.append({
                         "type": "file",
                         "source_type": "base64",
-                        "mime_type": get_optimized_fallback_mime(supplemental_file),
-                        "data": supplemental_file_base64,
-                    }
-                )
+                        "mime_type": mime,
+                        "data": file_data,
+                    })
+                except Exception as e:
+                    from core.log import LOG
+                    LOG.error(f"Failed to read supplemental file {supplemental_file}: {e}")
 
-            supplemental_files_dict_list.insert(0,
-                                                {"type": "text", "text": "Here are the supplemental files for the paper"})
-
-            messages.append(
-                HumanMessage(
-                    content=supplemental_files_dict_list
-                )
-            )
+            messages.append(HumanMessage(content=supplemental_content))
 
         return structured_llm.invoke(messages)
 
     return run_agent
 
 def create_final_agent(pydantic_model, system_instructions) -> Callable:
-    structured_llm = llm.with_structured_output(pydantic_model)
+    structured_llm = llm.with_structured_output(pydantic_model, include_raw=True)
 
     def run_agent(analysis_report: AnalysisReport):
         human_message_content = [
