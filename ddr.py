@@ -1,5 +1,6 @@
 from typing import Union
 from core.schemas import FinalDecision, AnalysisReport
+from core.log import LOG
 
 # Import Agents
 import agents
@@ -11,7 +12,7 @@ def desk_rejection_system(path_sub_dir: Union[os.PathLike, str]) -> FinalDecisio
     """
     Main Orchestrator: Calls all agents and aggregates the decision.
     """
-    print("--- Starting Desk Rejection Protocol ---")
+    LOG.info("--- Starting Desk Rejection Protocol ---")
 
     agent_funcs = {
         agents.formatting_agent : 'formatting_check',
@@ -33,9 +34,9 @@ def desk_rejection_system(path_sub_dir: Union[os.PathLike, str]) -> FinalDecisio
             agent_name = future_to_agent[future]
             try:
                 agent_results[agent_name] = future.result()
-                print(f"{agent_name} completed.")
+                LOG.debug(f"{agent_name} completed.")
             except Exception as exc:
-                print(f"{agent_name} generated an exception: {exc}")
+                LOG.debug(f"{agent_name} generated an exception: {exc}")
 
 
     analysis_report = AnalysisReport(
