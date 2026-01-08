@@ -1,6 +1,8 @@
-import base64
-from typing import List, Optional, Dict, Any
+import time
+from typing import List, Optional
 from pathlib import Path
+import google.genai as genai
+from concurrent.futures import ThreadPoolExecutor
 from core.constants import STYLE_GUIDES_DEFAULT, SUPPORTED_MIME_TYPES
 from core.log import LOG
 import mimetypes
@@ -24,40 +26,49 @@ def get_optimized_fallback_mime(file_path: str) -> str:
             return 'text/plain'  # Catch-all for varied text (logs, csv, etc.)
         case _:
             return 'text/plain'  # Ultimate default for unknown binaries
-            
-_STYLE_GUIDE_CACHE = None
 
-def get_style_guide_content() -> List[Dict[str, Any]]:
-    """
-    Loads and caches the style guide content to be used as a prefix in OpenAI requests.
-    This leverages OpenAI's automatic prompt caching.
-    """
-    global _STYLE_GUIDE_CACHE
-    if _STYLE_GUIDE_CACHE is not None:
-        return _STYLE_GUIDE_CACHE
+def upload_single_file(client: genai.Client, file_path: Optional[Path | str] = None) -> Optional[genai.types.File]:
+    try:
+        file = client.files.upload(file=file_path,
+                                   config=genai.types.UploadFileConfig(mime_type=get_optimized_fallback_mime(file_path)))
+        while file.state.name == "PROCESSING":
+            LOG.debug(f"Waiting for {file.display_name} to process...")
+            time.sleep(2)
+            file = client.files.get(name=file.name)
+    except Exception as e:
+        LOG.debug(f"Failed to upload the file {file_path} due to {e}")
+        return None
 
-    LOG.debug("--- Loading Style Guides for OpenAI Prompt Caching ---")
-    content = []
-    for path in STYLE_GUIDES_DEFAULT:
-        try:
-            mime = get_optimized_fallback_mime(str(path))
-            with open(path, "rb") as f:
-                file_data = base64.b64encode(f.read()).decode("utf-8")
+    return file
 
-            content.append({
-                "type": "text",
-                "text": f"The file named {path.split('/')[-1]} is one of the style guide files which will be referred to in one of the current agents"
-            })# the explanational part
+def create_paper_cache(style_guide_paths: List[str] = STYLE_GUIDES_DEFAULT, model_name: str = "gemini-2.5-flash-lite"):
+    LOG.debug("--- Uploading Files to Gemini Cache ---")
+    client = genai.Client()
 
-            content.append({
-                "type": "file",
-                "source_type": "base64",
-                "mime_type": mime,
-                "data": file_data,
-            }) # and then the content part
-            LOG.debug(f"Loaded style guide: {path} as {mime}")
-        except Exception as e:
-            LOG.error(f"Failed to load style guide {path}: {e}")
-    
-    _STYLE_GUIDE_CACHE = content
-    return _STYLE_GUIDE_CACHE
+    LOG.debug(f'Uploading style guide paths: {style_guide_paths}...')
+    style_guide_paths_uploaded = []
+    with ThreadPoolExecutor(max_workers=4, thread_name_prefix="StyleGuidePathThread") as executor:
+        style_guide_paths_uploaded = list(executor.map(upload_single_file, [(client, supplemental_path) for supplemental_path in style_guide_paths]))
+
+    if len(style_guide_paths_uploaded) != len(style_guide_paths):
+        LOG.warning("Have not been able to upload some style guide files")
+    LOG.info("Creating Context Cache...")
+
+    contents = [
+        genai.types.Content(
+            role="user",
+            parts=[
+                genai.types.Part.from_uri(file_uri=document.uri, mime_type=get_optimized_fallback_mime(document.uri)) for document in style_guide_paths_uploaded
+            ]
+        ),
+    ]
+    cache = client.caches.create(
+        model=model_name,
+        config=genai.types.CreateCachedContentConfig(
+            contents=contents,
+            system_instruction="You are an expert analyzing transcripts.",
+        ),
+    )
+    LOG.info(f"Cache Created! Name: {cache.name}")
+    cache = client.caches.create
+    return cache.name
