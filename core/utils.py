@@ -58,31 +58,63 @@ def create_chat(pydantic_model, system_instructions, model_id: str = 'gemini-2.5
     __CHATS[pydantic_model.__name__] = structured_engine.get_chat_session()
 
 
-            for supplemental_file in supplemental_files:
-                supplemental_file_bytes = open(supplemental_file, "rb").read()
-                supplemental_file_base64 = base64.b64encode(supplemental_file_bytes).decode("utf-8")
+def ask_agent(pydantic_model: pydantic.BaseModel, path_to_sub_dir: str, search_included : bool = False, thinking_included : bool = False):
+    # We build the prompt as a flat list of native Parts
+    agent_chat = __CHATS[pydantic_model.__name__]
+    message_config : types.GenerateContentConfig = agent_chat._config
 
-                supplemental_files_dict_list.append(
-                    {
-                        "type": "file",
-                        "source_type": "base64",
-                        "mime_type": get_optimized_fallback_mime(supplemental_file),
-                        "data": supplemental_file_base64,
-                    }
-                )
+    if thinking_included:
+        LOG.debug("Adding thinking availability")
+        message_config.thinking_config = types.ThinkingConfig(
+            include_thoughts=True,
+            thinking_budget=1024
+        )
+    else:
+        message_config.thinking_config = None
 
-            supplemental_files_dict_list.insert(0,
-                                                {"type": "text", "text": "Here are the supplemental files for the paper"})
 
-            messages.append(
-                HumanMessage(
-                    content=supplemental_files_dict_list
-                )
-            )
+    if search_included:
+        LOG.debug("Adding grounding search")
+        google_search_tool = types.Tool(
+            google_search=types.GoogleSearch()
+        )
 
-        return structured_llm.invoke(messages)
+        message_config.tools = google_search_tool
 
-    return run_agent
+    prompt_parts: List[types.Part] = []
+
+    prompt_parts.append(types.Part.from_text(
+        text="Here are the style guide files and requirements for the conference"
+    ))
+
+    for style_guide in STYLE_GUIDES_DEFAULT:
+        with open(style_guide, "rb") as f:
+            prompt_parts.append(types.Part.from_bytes(
+                data=f.read(),
+                mime_type=get_optimized_fallback_mime(str(style_guide))
+            ))
+
+    # --- 2. Main Paper (Sequence: Text -> PDF File) ---
+    prompt_parts.append(types.Part.from_text(text="Here is the main.pdf for the paper"))
+    with open(f"{path_to_sub_dir}/main_paper.pdf", "rb") as f:
+        prompt_parts.append(types.Part.from_bytes(
+            data=f.read(),
+            mime_type="application/pdf"
+        ))
+
+    # --- 3. Supplemental Files (Optional Sequence: Text -> Multiple Files) ---
+    supp_path = os.path.join(path_to_sub_dir, "supplemental_files")
+    if os.path.exists(supp_path):
+        prompt_parts.append(types.Part.from_text(text="Here are the supplemental files for the paper"))
+        supplemental_files = add_supplemental_files(supp_path)
+        for s_file in supplemental_files:
+            with open(s_file, "rb") as f:
+                prompt_parts.append(types.Part.from_bytes(
+                    data=f.read(),
+                    mime_type=get_optimized_fallback_mime(s_file)
+                ))
+
+    return agent_chat.send_message(prompt_parts, config=message_config)
 
 def create_final_agent(pydantic_model, system_instructions) -> Callable:
     structured_llm = llm.with_structured_output(pydantic_model)
