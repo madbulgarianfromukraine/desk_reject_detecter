@@ -1,5 +1,5 @@
 import mimetypes
-from typing import List, Union, Dict, Any, Callable
+from typing import List, Union, Dict, Type
 import pydantic
 from google.genai import types, chats
 import os
@@ -7,7 +7,7 @@ import os
 from core.config import VertexEngine  # Import the configured LLM
 from core.log import LOG
 from core.constants import SKIP_DIRS, STYLE_GUIDES_DEFAULT, SUPPORTED_MIME_TYPES
-from core.schemas import AnalysisReport
+from core.schemas import AnalysisReport, FinalDecision
 
 
 __CHATS : Dict[str, chats.Chat] = {}
@@ -44,7 +44,7 @@ def add_supplemental_files(path_to_supplemental_files: Union[os.PathLike, str]) 
 
     return supplemental_files_paths
 
-def create_chat(pydantic_model, system_instructions, model_id: str = 'gemini-2.5-flash') -> None:
+def create_chat(pydantic_model: Type[pydantic.BaseModel], system_instructions, model_id: str = 'gemini-2.5-flash', search_included : bool = False, thinking_included : bool = False) -> None:
     """Create chat for a single agent."""
 
     if __CHATS.get(pydantic_model.__name__, None):
@@ -54,24 +54,14 @@ def create_chat(pydantic_model, system_instructions, model_id: str = 'gemini-2.5
     structured_engine = engine.set_schema(schema=pydantic_model)
     structured_engine = structured_engine.set_system_instruction(instruction=types.Part.from_text(text=system_instructions))
 
-    LOG.info(f"Creating chat for {pydantic_model.__name__}")
-    __CHATS[pydantic_model.__name__] = structured_engine.get_chat_session()
-
-
-def ask_agent(pydantic_model: pydantic.BaseModel, path_to_sub_dir: str, search_included : bool = False, thinking_included : bool = False):
-    # We build the prompt as a flat list of native Parts
-    agent_chat = __CHATS[pydantic_model.__name__]
-    message_config : types.GenerateContentConfig = agent_chat._config
-
     if thinking_included:
         LOG.debug("Adding thinking availability")
-        message_config.thinking_config = types.ThinkingConfig(
+        structured_engine.config.thinking_config = types.ThinkingConfig(
             include_thoughts=True,
             thinking_budget=1024
         )
     else:
-        message_config.thinking_config = None
-
+        structured_engine.config.thinking_config = None
 
     if search_included:
         LOG.debug("Adding grounding search")
@@ -79,9 +69,16 @@ def ask_agent(pydantic_model: pydantic.BaseModel, path_to_sub_dir: str, search_i
             google_search=types.GoogleSearch()
         )
 
-        message_config.tools = google_search_tool
+        structured_engine.config.tools = [google_search_tool]
 
-    prompt_parts: List[types.Part] = []
+    LOG.info(f"Creating chat for {pydantic_model.__name__}")
+    __CHATS[pydantic_model.__name__] = structured_engine.get_chat_session()
+
+
+def ask_agent(pydantic_model: Type[pydantic.BaseModel], path_to_sub_dir: str):
+    # We build the prompt as a flat list of native Parts
+    agent_chat = __CHATS[pydantic_model.__name__]
+    prompt_parts: List[types.Part] = list()
 
     prompt_parts.append(types.Part.from_text(
         text="Here are the style guide files and requirements for the conference"
@@ -114,26 +111,31 @@ def ask_agent(pydantic_model: pydantic.BaseModel, path_to_sub_dir: str, search_i
                     mime_type=get_optimized_fallback_mime(s_file)
                 ))
 
-    return agent_chat.send_message(prompt_parts, config=message_config)
+    return agent_chat.send_message(prompt_parts)
 
-def create_final_agent(pydantic_model, system_instructions) -> Callable:
-    structured_llm = llm.with_structured_output(pydantic_model)
+def ask_final(analysis_report: AnalysisReport, thinking_included : bool = False):
+    """Native implementation of the Final Agent critique/generation logic."""
 
-    def run_agent(analysis_report: AnalysisReport):
-        human_message_content = [
-            {
-                "type": "text",
-                "text": f"Here is the result of {key}\n{val}\n"
-            }
-            for key, val in vars(analysis_report).items()
-            if key.endswith("_check")
-        ]
+    final_agent_chat = __CHATS[FinalDecision.__name__]
+    message_config = final_agent_chat._config
 
-        messages = [
-            SystemMessage(content=system_instructions),
-            HumanMessage(content=human_message_content)
-        ]
+    if thinking_included:
+        LOG.debug("Adding thinking availability")
+        message_config.thinking_config = types.ThinkingConfig(
+            include_thoughts=True,
+            thinking_budget=1024
+        )
+    else:
+        message_config.thinking_config = None
 
-        return structured_llm.invoke(messages)
+    prompt_parts: List[types.Part] = list()
 
-    return run_agent
+    for key, val in vars(analysis_report).items():
+        if key.endswith("_check"):
+            prompt_parts.append(types.Part.from_text(
+                text=f"Here is the result of {key}:\n{val}\n"
+            ))
+
+    # 3. Native chat.send_message
+    # This automatically adds the prompt and model response to the session history
+    return final_agent_chat.send_message(prompt_parts, config=message_config)
