@@ -1,5 +1,7 @@
+from google.genai import types
+
 from core.schemas import SafetyCheck
-from core.utils import create_agent_chain
+from core.utils import create_chat, ask_agent
 
 SYSTEM_PROMPT = """
 Identity: You are the Ethics & Safety Specialist, the final line of defense against harmful research. 
@@ -10,4 +12,9 @@ Task Explanation: You are evaluating the paper for fundamental human and scienti
 * Integrity: Look for obvious fabrication (e.g., "lorem ipsum" in data tables or impossible results that suggest the numbers were generated randomly).
 * Output Requirement: Return a JSON object matching the SafetyCheck schema. If no violations are found, set issue_type to "None"."""
 
-safety_agent = create_agent_chain(SafetyCheck, SYSTEM_PROMPT)
+def create_chat_settings(model_id: str = 'gemini-2.5-flash', search_included : bool = False, thinking_included : bool = False):
+    return create_chat(pydantic_model=SafetyCheck, system_instructions=SYSTEM_PROMPT, model_id=model_id,
+            search_included=search_included, thinking_included=thinking_included)
+
+def safety_agent(path_to_sub_dir: str) -> types.GenerateContentResponse:
+    return ask_agent(pydantic_model=SafetyCheck, path_to_sub_dir=path_to_sub_dir)
