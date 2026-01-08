@@ -1,13 +1,12 @@
 import mimetypes
 from typing import List, Union, Dict, Any, Callable
-from pathlib import Path
-from langchain_core.messages import SystemMessage, HumanMessage
-
-from core.cache_manager import get_optimized_fallback_mime
-from core.config import llm  # Import the configured LLM
-from core.constants import SKIP_DIRS
+import pydantic
+from google.genai import types, chats
 import os
 
+from core.config import VertexEngine  # Import the configured LLM
+from core.log import LOG
+from core.constants import SKIP_DIRS, STYLE_GUIDES_DEFAULT, SUPPORTED_MIME_TYPES
 from core.schemas import AnalysisReport
 
 
@@ -45,32 +44,18 @@ def add_supplemental_files(path_to_supplemental_files: Union[os.PathLike, str]) 
 
     return supplemental_files_paths
 
-def create_agent_chain(pydantic_model, system_instructions) -> Callable:
-    """Factory function that creates a specialized agent."""
-    structured_llm = llm.with_structured_output(pydantic_model)
+def create_chat(pydantic_model, system_instructions, model_id: str = 'gemini-2.5-flash') -> None:
+    """Create chat for a single agent."""
 
-    def run_agent(path_to_sub_dir):
-        main_pdf_bytes = open(f'{path_to_sub_dir}/main_paper.pdf', "rb").read()
-        main_pdf_base64 = base64.b64encode(main_pdf_bytes).decode("utf-8")
+    if __CHATS.get(pydantic_model.__name__, None):
+        LOG.info(f"Chat {__CHATS.get(pydantic_model.__name__)} already exists")
 
-        content = [
-            {"type": "text", "text": f"Here is the main.pdf for the paper"},
-            {
-                "type": "file",
-                "source_type": "base64",
-                "mime_type": "application/pdf",
-                "data": main_pdf_base64,
-            }
-        ]
+    engine = VertexEngine(model_id=model_id)
+    structured_engine = engine.set_schema(schema=pydantic_model)
+    structured_engine = structured_engine.set_system_instruction(instruction=types.Part.from_text(text=system_instructions))
 
-        messages = [
-            SystemMessage(content=system_instructions),
-            HumanMessage(content=content)
-        ]
-
-        if os.path.exists(f"{path_to_sub_dir}/supplemental_files"):
-            supplemental_files = add_supplemental_files(f'{path_to_sub_dir}/supplemental_files')
-            supplemental_files_dict_list : List[Dict[str, Any]] = []
+    LOG.info(f"Creating chat for {pydantic_model.__name__}")
+    __CHATS[pydantic_model.__name__] = structured_engine.get_chat_session()
 
 
             for supplemental_file in supplemental_files:
