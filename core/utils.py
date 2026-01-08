@@ -113,21 +113,10 @@ def ask_agent(pydantic_model: Type[pydantic.BaseModel], path_to_sub_dir: str):
 
     return agent_chat.send_message(prompt_parts)
 
-def ask_final(analysis_report: AnalysisReport, thinking_included : bool = False):
+def ask_final(analysis_report: AnalysisReport):
     """Native implementation of the Final Agent critique/generation logic."""
 
     final_agent_chat = __CHATS[FinalDecision.__name__]
-    message_config = final_agent_chat._config
-
-    if thinking_included:
-        LOG.debug("Adding thinking availability")
-        message_config.thinking_config = types.ThinkingConfig(
-            include_thoughts=True,
-            thinking_budget=1024
-        )
-    else:
-        message_config.thinking_config = None
-
     prompt_parts: List[types.Part] = list()
 
     for key, val in vars(analysis_report).items():
@@ -138,4 +127,4 @@ def ask_final(analysis_report: AnalysisReport, thinking_included : bool = False)
 
     # 3. Native chat.send_message
     # This automatically adds the prompt and model response to the session history
-    return final_agent_chat.send_message(prompt_parts, config=message_config)
+    return final_agent_chat.send_message(prompt_parts)
