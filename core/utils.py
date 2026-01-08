@@ -1,4 +1,4 @@
-import base64
+import mimetypes
 from typing import List, Union, Dict, Any, Callable
 from pathlib import Path
 from langchain_core.messages import SystemMessage, HumanMessage
@@ -10,6 +10,27 @@ import os
 
 from core.schemas import AnalysisReport
 
+
+__CHATS : Dict[str, chats.Chat] = {}
+
+def get_optimized_fallback_mime(file_path: str) -> str:
+    mime, _ = mimetypes.guess_type(file_path)
+
+    if mime in SUPPORTED_MIME_TYPES:
+        return mime
+
+    # 2. Structural pattern matching for closest-category fallbacks
+    match mime.split('/') if mime else []:
+        case ['video', _]:
+            return 'video/mp4'  # Best fallback for all unsupported video
+        case ['audio', _]:
+            return 'audio/mpeg'  # Best fallback for all unsupported audio
+        case ['image', _]:
+            return 'image/jpeg'  # Best fallback for all unsupported images
+        case ['text', _]:
+            return 'text/plain'  # Catch-all for varied text (logs, csv, etc.)
+        case _:
+            return 'text/plain'  # Ultimate default for unknown binaries
 
 def add_supplemental_files(path_to_supplemental_files: Union[os.PathLike, str]) -> List[Union[os.PathLike, str]]:
     supplemental_files_paths = []
