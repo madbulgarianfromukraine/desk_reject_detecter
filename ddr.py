@@ -3,8 +3,7 @@ from typing import Union, Dict, Optional, Type, List
 import pydantic
 
 from core.schemas import (
-    FinalDecision, AnalysisReport, SafetyCheck, AnonymityCheck,
-    VisualIntegrityCheck, FormattingCheck, PolicyCheck, ScopeCheck,
+    FinalDecision, AnalysisReport,
     AGENT_SCHEMAS
 )
 from core.logprobs import combine_confidences
@@ -114,5 +113,7 @@ def desk_rejection_system(path_sub_dir: Union[os.PathLike, str], think: bool = F
     )
 
     final_decision_response = final_decision_agent.ask_final_decision_agent(analysis_report=analysis_report)
+    final_decision_response.parsed.confidence_score = combine_confidences(llm_response=final_decision_response, pydantic_scheme=FinalDecision, final_agent=True)
+
     return final_decision_response.parsed
 
