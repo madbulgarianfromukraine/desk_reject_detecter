@@ -1,40 +1,20 @@
-from typing import Union, Dict, Optional, Type
+from typing import Union, Dict, Optional, Type, List
 
 import pydantic
 
-from core.schemas import FinalDecision, AnalysisReport
+from core.schemas import (
+    FinalDecision, AnalysisReport, SafetyCheck, AnonymityCheck,
+    VisualIntegrityCheck, FormattingCheck, PolicyCheck, ScopeCheck,
+    AGENT_SCHEMAS
+)
+from core.logprobs import combine_confidences
 from core.log import LOG
 
 # Import Agents
-import agents
+from agents import AGENT_MAPPING, create_chats, final_decision_agent
 import os
 import concurrent.futures
 
-
-def create_chats(include_thinking: bool = False, include_search: bool = False) -> None:
-    """
-    Initializes the chat settings for all agents in the desk rejection system.
-
-    This function sets up each agent with the specified capabilities (thinking and search)
-    by calling their respective `create_chat_settings` methods in parallel.
-
-    :param include_thinking: Whether to enable thinking/reasoning capabilities for applicable agents.
-    :param include_search: Whether to enable search capabilities for applicable agents.
-    """
-    # 1. Initialize all agents in parallel
-    initialization_tasks = [
-        (agents.formatting_agent.create_chat_settings, {}),
-        (agents.policy_agent.create_chat_settings, {'search_included': include_search}),
-        (agents.visual_agent.create_chat_settings, {}),
-        (agents.anonymity_agent.create_chat_settings, {'search_included': include_search}),
-        (agents.scope_agent.create_chat_settings, {'thinking_included': include_thinking}),
-        (agents.safety_agent.create_chat_settings, {'thinking_included': include_thinking}),
-        (agents.final_decision_agent.create_chat_settings, {'thinking_included': include_thinking}),
-    ]
-
-    with concurrent.futures.ThreadPoolExecutor(max_workers=len(initialization_tasks)) as executor:
-        futures = [executor.submit(func, **kwargs) for func, kwargs in initialization_tasks]
-        concurrent.futures.wait(futures)
 
 def desk_rejection_system(path_sub_dir: Union[os.PathLike, str], think: bool = False, search: bool = False) -> FinalDecision:
     """
@@ -44,19 +24,10 @@ def desk_rejection_system(path_sub_dir: Union[os.PathLike, str], think: bool = F
 
     create_chats(include_thinking=think, include_search=search)
 
-    agent_mapping = {
-        'formatting_check': agents.formatting_agent.ask_formatting_agent,
-        'policy_check': agents.policy_agent.ask_policy_agent,
-        'visual_integrity_check': agents.visual_agent.ask_visual_agent,
-        'anonymity_check': agents.anonymity_agent.ask_anonymity_agent,
-        'scope_check': agents.scope_agent.ask_scope_agent,
-        'safety_check': agents.safety_agent.ask_safety_agent,
-    }
-
     CONFIDENCE_THRESHOLD = 0.7 # probably make it configurable, if have time.
     MAX_ITERATIONS = 3
     
-    agent_results : Dict[str, Optional[Type[pydantic.BaseModel]]] = {key: None for key in agent_mapping.keys()}
+    agent_results : Dict[str, Optional[Type[pydantic.BaseModel]]] = {key: None for key in AGENT_MAPPING.keys()}
     
     for iteration in range(MAX_ITERATIONS):
         LOG.info(f"--- Iteration {iteration + 1} ---")
@@ -65,7 +36,7 @@ def desk_rejection_system(path_sub_dir: Union[os.PathLike, str], think: bool = F
         agents_to_run = {}
         for key, result in agent_results.items():
             if result is None or result.confidence_score < CONFIDENCE_THRESHOLD:
-                agents_to_run[key] = agent_mapping[key]
+                agents_to_run[key] = AGENT_MAPPING[key]
         
         if not agents_to_run:
             LOG.info("All agents satisfied confidence threshold.")
@@ -84,8 +55,21 @@ def desk_rejection_system(path_sub_dir: Union[os.PathLike, str], think: bool = F
                 try:
                     response = future.result()
                     # The response is a GenerateContentResponse, we need the parsed object
-                    agent_results[agent_name] = response.parsed
-                    LOG.debug(f"{agent_name} completed with confidence {agent_results[agent_name].confidence_score}.")
+                    parsed_response = response.parsed
+
+                    # Compute logprob-based confidence score and substitute it
+                    agent_schema = AGENT_SCHEMAS.get(agent_name)
+                    if agent_schema:
+                        new_confidence = combine_confidences(response, agent_schema)
+                        parsed_response.confidence_score = new_confidence
+                        LOG.debug(f"Substituted {agent_name} confidence with logprob-based score: {new_confidence}")
+
+                    # Update only if confidence is higher or if it's the first result
+                    if agent_results[agent_name] is None or parsed_response.confidence_score > agent_results[agent_name].confidence_score:
+                        agent_results[agent_name] = parsed_response
+                        LOG.debug(f"{agent_name} updated with confidence {parsed_response.confidence_score}.")
+                    else:
+                        LOG.debug(f"{agent_name} current confidence ({parsed_response.confidence_score}) is not higher than existing ({agent_results[agent_name].confidence_score}). Keeping existing.")
                 except Exception as exc:
                     LOG.error(f"{agent_name} generated an exception: {exc}")
 
@@ -105,6 +89,6 @@ def desk_rejection_system(path_sub_dir: Union[os.PathLike, str], think: bool = F
         scope_check=agent_results["scope_check"]
     )
 
-    final_decision_response = agents.final_decision_agent.ask_final_decision_agent(analysis_report=analysis_report)
+    final_decision_response = final_decision_agent.ask_final_decision_agent(analysis_report=analysis_report)
     return final_decision_response.parsed
 
