@@ -16,5 +16,5 @@ def create_chat_settings(model_id: str = 'gemini-2.5-flash', search_included : b
     return create_chat(pydantic_model=ScopeCheck, system_instructions=SYSTEM_PROMPT, model_id=model_id,
             search_included=search_included, thinking_included=thinking_included)
 
-def scope_agent(path_to_sub_dir: str) -> types.GenerateContentResponse:
+def ask_scope_agent(path_to_sub_dir: str) -> types.GenerateContentResponse:
     return ask_agent(pydantic_model=ScopeCheck, path_to_sub_dir=path_to_sub_dir)
