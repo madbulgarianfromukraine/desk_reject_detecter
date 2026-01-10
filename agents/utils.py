@@ -1,0 +1,44 @@
+import concurrent.futures
+from . import (
+    formatting_agent,
+    policy_agent,
+    visual_agent,
+    anonymity_agent,
+    scope_agent,
+    safety_agent,
+    final_decision_agent
+)
+
+AGENT_MAPPING = {
+    'formatting_check': formatting_agent.ask_formatting_agent,
+    'policy_check': policy_agent.ask_policy_agent,
+    'visual_integrity_check': visual_agent.ask_visual_agent,
+    'anonymity_check': anonymity_agent.ask_anonymity_agent,
+    'scope_check': scope_agent.ask_scope_agent,
+    'safety_check': safety_agent.ask_safety_agent,
+}
+
+def create_chats(include_thinking: bool = False, include_search: bool = False) -> None:
+    """
+    Initializes the chat settings for all agents in the desk rejection system.
+
+    This function sets up each agent with the specified capabilities (thinking and search)
+    by calling their respective `create_chat_settings` methods in parallel.
+
+    :param include_thinking: Whether to enable thinking/reasoning capabilities for applicable agents.
+    :param include_search: Whether to enable search capabilities for applicable agents.
+    """
+    # 1. Initialize all agents in parallel
+    initialization_tasks = [
+        (formatting_agent.create_chat_settings, {}),
+        (policy_agent.create_chat_settings, {'search_included': include_search}),
+        (visual_agent.create_chat_settings, {}),
+        (anonymity_agent.create_chat_settings, {'search_included': include_search}),
+        (scope_agent.create_chat_settings, {'thinking_included': include_thinking}),
+        (safety_agent.create_chat_settings, {'thinking_included': include_thinking}),
+        (final_decision_agent.create_chat_settings, {'thinking_included': include_thinking}),
+    ]
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(initialization_tasks)) as executor:
+        futures = [executor.submit(func, **kwargs) for func, kwargs in initialization_tasks]
+        concurrent.futures.wait(futures)

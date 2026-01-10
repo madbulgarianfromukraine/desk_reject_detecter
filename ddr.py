@@ -11,7 +11,8 @@ from core.logprobs import combine_confidences
 from core.log import LOG
 
 # Import Agents
-from agents import AGENT_MAPPING, create_chats, final_decision_agent
+from agents import final_decision_agent
+from agents.utils import AGENT_MAPPING, create_chats
 import os
 import concurrent.futures
 
