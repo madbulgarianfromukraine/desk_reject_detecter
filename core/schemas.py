@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Tuple, Any, Type, get_args
 from pydantic import BaseModel, Field
 
 # Base schemas for individual checks
@@ -11,28 +11,28 @@ class SafetyCheck(BaseModel):
 
 class AnonymityCheck(BaseModel):
     violation_found: bool
-    issue_type: Literal["Author Names", "Visual Anonymity", "Self-Citation", "Links", "None"] = "None"
+    issue_type: Literal["Author_Names", "Visual_Anonymity", "Self-Citation", "Links", "None"] = "None"
     evidence_snippet: str
     reasoning: str
     confidence_score: float = Field(ge=0.0, le=1.0)
 
 class VisualIntegrityCheck(BaseModel):
     violation_found: bool
-    issue_type: Literal["Placeholder Figures", "Unreadable Content", "Broken Rendering", "None"] = "None"
+    issue_type: Literal["Placeholder_Figures", "Unreadable_Content", "Broken_Rendering", "None"] = "None"
     evidence_snippet: str
     reasoning: str
     confidence_score: float = Field(ge=0.0, le=1.0)
 
 class FormattingCheck(BaseModel):
     violation_found: bool
-    issue_type: Literal["Page Limit", "Statement Limit", "Margins/Spacing", "Line Numbers", "None"] = "None"
+    issue_type: Literal["Page_Limit", "Statement_Limit", "Margins/Spacing", "Line_Numbers", "None"] = "None"
     evidence_snippet: str
     reasoning: str
     confidence_score: float = Field(ge=0.0, le=1.0)
 
 class PolicyCheck(BaseModel):
     violation_found: bool
-    issue_type: Literal["Placeholder Text", "Dual Submission", "Plagiarism", "None"] = "None"
+    issue_type: Literal["Placeholder_Text", "Dual_Submission", "Plagiarism", "None"] = "None"
     evidence_snippet: str
     reasoning: str
     confidence_score: float = Field(ge=0.0, le=1.0)
@@ -55,6 +55,11 @@ class AnalysisReport(BaseModel):
 
 class FinalDecision(BaseModel):
     desk_reject_decision: Literal["YES", "NO"]
-    primary_reason_category: Literal["Code of Ethics", "Anonymity", "Formatting", "Visual Integrity", "Policy", "Scope", "None"]
+    primary_reason_category: Literal["Code_of_Ethics", "Anonymity", "Formatting", "Visual_Integrity", "Policy", "Scope", "None"]
     confidence_score: float = Field(ge=0.0, le=1.0)
     analysis: AnalysisReport
+
+
+def extract_possible_values(pydantic_scheme: Type[BaseModel], target_field: str) -> Tuple[Any]:
+    field_info = AnonymityCheck.model_fields[target_field]
+    return get_args(field_info.annotation)
