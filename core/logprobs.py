@@ -17,6 +17,14 @@ __LOGPROB_CANDIDATES = {
     "evidence_snippet" : 0.45,
 }
 
+# Weights for the final decision agent.
+# - 'desk_rejection_decision': The terminal YES/NO decision (0.2 weight).
+# - 'primary_reason_category': The categorized reason for the decision (0.8 weight).
+__FINAL_LOGPROB_CANDIDATES = {
+    "desk_rejection_decision" : 0.2,
+    "primary_reason_category" : 0.8
+}
+
 def get_field_confidence(logprob_candidates: List, target_field: str, pydantic_scheme : Type[BaseModel]) -> float:
     """
     Parses a list of LogprobsResultCandidate to find a specific JSON field
@@ -107,7 +115,7 @@ def get_field_confidence(logprob_candidates: List, target_field: str, pydantic_s
     return avg_logprob
 
 def combine_confidences(llm_response: types.GenerateContentResponse,
-                        pydantic_scheme: Type[BaseModel]) -> float:
+                        pydantic_scheme: Type[BaseModel], final_agent: bool = False) -> float:
     """
     Calculates a weighted average confidence score for a set of predefined fields in an LLM response.
 
@@ -119,12 +127,19 @@ def combine_confidences(llm_response: types.GenerateContentResponse,
 
     :param llm_response: The response from the Google Generative AI model.
     :param pydantic_scheme: The Pydantic model class used for structured output.
+    :param final_agent: Boolean flag to use final agent specific logprob candidates.
     :return: A final confidence score as a float (0.0 to 1.0).
     """
     final_confidence = 0.0
     logprob_candidates = llm_response.candidates[0].logprobs_result.chosen_candidates
 
-    for target_field, weight in __LOGPROB_CANDIDATES.items():
+
+    if final_agent:
+        logprob_dict = __FINAL_LOGPROB_CANDIDATES
+    else:
+        logprob_dict = __LOGPROB_CANDIDATES
+
+    for target_field, weight in logprob_dict.items():
         final_confidence += weight * get_field_confidence(logprob_candidates=logprob_candidates, target_field=target_field, pydantic_scheme=pydantic_scheme)
 
     return final_confidence
