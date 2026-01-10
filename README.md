@@ -13,7 +13,7 @@ This repository contains the implementation of a multi-agent system designed to 
 ### Prerequisites
 
 #### 1. Requirements
-Ensure you have Python 3.10+ installed. Install the necessary dependencies using `pip`:
+Ensure you have Python 3 or higher installed. Install the necessary dependencies using `pip`:
 
 ```bash
 pip install -r requirements.txt
@@ -57,8 +57,14 @@ python main.py determine_desk_rejection --directory ./path/to/paper_folder
 To evaluate a dataset of submissions and generate performance metrics (Precision, Recall, F1):
 
 ```bash
-python main.py evaluate_desk_rejection --directory ./path/to/submissions_root --answers_only True
+python main.py evaluate_desk_rejection --directory ./path/to/submissions_root --answers_only True --limit 10
 ```
+- **Optional Flags**:
+  - `--limit`: Limits the number of submissions to evaluate.
+  - `--parallel`: Runs evaluations in parallel using a thread pool.
+  - `--answers_only`: Set to `True` to evaluate only the precision of the final answer.
+  - `--think`: Enable reasoning for agents.
+  - `--search`: Enable search for agents.
 
 ---
 
