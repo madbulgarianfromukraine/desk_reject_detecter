@@ -6,6 +6,18 @@ from core.schemas import FinalDecision
 
 
 def evaluate_submission_answers_only(evaluation_results: Dict[str, FinalDecision]) -> None:
+    """
+    Evaluates the model's binary desk-rejection decisions against ground truth labels.
+
+    This function compares the "YES/NO" decisions from the system against a reference 
+    CSV file. It calculates standard classification metrics: Precision, Recall, and F1 Score.
+
+    Input requirements:
+    - Ground truth is expected in 'data/iclr/data/submissions.csv' with columns:
+      'directory_name' and 'label' ('Desk Rejected' or 'Not Desk Rejected').
+
+    :param evaluation_results: A dictionary mapping directory names to FinalDecision objects.
+    """
 
     submissions_df = read_csv("data/iclr/data/submissions.csv",
                               true_values=["Desk Rejected"],
@@ -30,4 +42,15 @@ def evaluate_submission_answers_only(evaluation_results: Dict[str, FinalDecision
 
 
 def evaluate_submission_full(evaluation_results: Dict[str, FinalDecision]) -> None:
+    """
+    (Placeholder) Performs a deep evaluation of reasoning and evidence snippets.
+
+    Intended Logic:
+    - Compare the 'evidence_snippet' and 'reasoning' provided by the agents against 
+      human-annotated justifications.
+    - Measure the semantic similarity or overlap (e.g., using BERTScore or ROUGE)
+      to verify if the agent found the correct violation reasons, not just the right label.
+
+    :param evaluation_results: A dictionary mapping directory names to FinalDecision objects.
+    """
     pass

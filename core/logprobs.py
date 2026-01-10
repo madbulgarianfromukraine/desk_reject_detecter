@@ -7,6 +7,10 @@ from core.schemas import extract_possible_values
 from core.log import LOG
 
 
+# Weights for different fields used to calculate the overall confidence score.
+# - 'violation_found': High-level indicator (0.15 weight).
+# - 'issue_type': Categorization of the violation (0.4 weight).
+# - 'evidence_snippet': The specific proof found, which is most critical (0.45 weight).
 __LOGPROB_CANDIDATES = {
     "violation_found" : 0.15,
     "issue_type" : 0.4,
@@ -17,6 +21,21 @@ def get_field_confidence(logprob_candidates: List, target_field: str, pydantic_s
     """
     Parses a list of LogprobsResultCandidate to find a specific JSON field
     and returns the average probability of its value tokens.
+
+    Algorithm Logic:
+    1. Phase 1 (Key Discovery): Uses "Partial Match" logic to find the target key. Since the LLM
+       might tokenize a JSON key (e.g., "violation_found") into multiple tokens, we rebuild
+       and verify the key incrementally.
+    2. Phase 2 (Punctuation): Skips structural JSON characters like ':', '"', and whitespace
+       to reach the actual value.
+    3. Phase 3 (Value Capture): Collects all tokens until a JSON delimiter (like a comma or
+       closing brace) is encountered.
+    4. Phase 4 (Validation & Scoring): Validates the reconstructed value against the
+       Pydantic schema's allowed values (if applicable).
+
+    Confidence Calculation:
+    Uses the geometric mean of individual token probabilities.
+    Geometric mean = e^(average of log-probabilities).
 
     :param logprob_candidates: A list of log probability candidates from the LLM response.
     :param target_field: The name of the field to extract confidence for.
@@ -73,8 +92,6 @@ def get_field_confidence(logprob_candidates: List, target_field: str, pydantic_s
         break
 
     # --- PHASE 4: Final Calculation ---
-
-
     if not field_value_logprobs:
         LOG.warn(f"The field={target_field} or the value of it was not found")
         return 0.0  # Return 0 if the field was never found or value was empty
@@ -85,7 +102,6 @@ def get_field_confidence(logprob_candidates: List, target_field: str, pydantic_s
         LOG.warn(f"The field_value={"".join(field_values)} is not one of the possible for the field.")
         return 0.0
 
-
     # Geometric mean of probabilities = e^(average of logprobs)
     avg_logprob = sum(map(math.exp, field_value_logprobs)) / len(field_value_logprobs)
     return avg_logprob
@@ -95,12 +111,15 @@ def combine_confidences(llm_response: types.GenerateContentResponse,
     """
     Calculates a weighted average confidence score for a set of predefined fields in an LLM response.
 
-    This function extracts log probabilities for specific fields defined in `__LOGPROB_CANDIDATES`
-    and combines them using their respective weights.
+    Significance of Weights:
+    We use `__LOGPROB_CANDIDATES` to prioritize fields that represent the core reasoning of the agent.
+    - `evidence_snippet` (0.45) is heavily weighted because it provides the grounding for the decision.
+    - `issue_type` (0.4) is weighted as it represents the agent's classification.
+    - `violation_found` (0.15) is a binary flag and thus has lower relative weight compared to the semantic fields.
 
     :param llm_response: The response from the Google Generative AI model.
     :param pydantic_scheme: The Pydantic model class used for structured output.
-    :return: A final confidence score as a float.
+    :return: A final confidence score as a float (0.0 to 1.0).
     """
     final_confidence = 0.0
     logprob_candidates = llm_response.candidates[0].logprobs_result.chosen_candidates

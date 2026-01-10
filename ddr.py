@@ -19,7 +19,30 @@ import concurrent.futures
 
 def desk_rejection_system(path_sub_dir: Union[os.PathLike, str], think: bool = False, search: bool = False) -> FinalDecision:
     """
-    Main Orchestrator: Calls all agents and aggregates the decision.
+    Main Orchestrator for the Desk Rejection System.
+
+    This function implements a multi-agent, iterative workflow to determine if a scientific
+    paper should be desk-rejected based on conference-specific guidelines (e.g., ICLR).
+
+    Workflow Logic:
+    1.  Initialization: Creates chat sessions for all specialized auditor agents (Safety,
+        Anonymity, Formatting, etc.) with optional thinking/search capabilities.
+    2.  Iterative Evaluation (Self-Correction):
+        - It runs agents in parallel using a ThreadPoolExecutor.
+        - For each agent's response, it calculates a logprob-based confidence score.
+        - If an agent's confidence score is below the `CONFIDENCE_THRESHOLD`, it will be
+          re-run in the next iteration (up to `MAX_ITERATIONS`).
+        - It keeps the result with the highest confidence score for each category.
+    3.  Aggregation: Once all agents satisfy the threshold or max iterations are reached,
+        the results are compiled into an `AnalysisReport`.
+    4.  Final Decision: The `AnalysisReport` is sent to the `final_decision_agent`, which
+        acts as the "Program Chair" to make the terminal "YES/NO" decision.
+
+    :param path_sub_dir: Path to the directory containing 'main_paper.pdf' and supplemental files.
+    :param think: Boolean flag to enable Gemini's 'thinking' (reasoning) capabilities.
+    :param search: Boolean flag to enable Google Search grounding for relevant agents.
+    :return: A FinalDecision object containing the terminal decision and aggregated analysis.
+    :raises RuntimeError: If an agent fails to provide a result after all iterations.
     """
     LOG.info("--- Starting Desk Rejection Protocol ---")
 

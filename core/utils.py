@@ -17,7 +17,7 @@ def get_style_guides_parts() -> List[types.Part]:
     """Get style guides as a list of Parts, using cache if available."""
     global __STYLE_GUIDES_CACHE
     if not __STYLE_GUIDES_CACHE:
-        LOG.info("Loading style guides into cache")
+        LOG.info("Loading style guides into the prompt")
         for style_guide in STYLE_GUIDES_DEFAULT:
             with open(style_guide, "rb") as f:
                 __STYLE_GUIDES_CACHE.append(types.Part.from_bytes(
@@ -27,6 +27,19 @@ def get_style_guides_parts() -> List[types.Part]:
     return __STYLE_GUIDES_CACHE
 
 def get_optimized_fallback_mime(file_path: str) -> str:
+    """
+    Determines the best supported MIME type for a given file, falling back to safe defaults
+    if the exact type is not supported by the Gemini API.
+
+    Rationale:
+    - Gemini has a specific list of supported MIME types.
+    - For unsupported media, we map to a "best-fit" supported type (e.g., any video -> video/mp4)
+      to allow the model to attempt processing.
+    - text/plain is used as the ultimate fallback for unknown or varied text formats.
+
+    :param file_path: Path to the file.
+    :return: A supported MIME type string.
+    """
     mime, _ = mimetypes.guess_type(file_path)
 
     if mime in SUPPORTED_MIME_TYPES:
@@ -46,6 +59,18 @@ def get_optimized_fallback_mime(file_path: str) -> str:
             return 'text/plain'  # Ultimate default for unknown binaries
 
 def add_supplemental_files(path_to_supplemental_files: Union[os.PathLike, str]) -> List[Union[os.PathLike, str]]:
+    """
+    Recursively gathers all files from the supplemental files directory.
+
+    Implementation Details:
+    - Uses os.walk to traverse the directory tree.
+    - Prunes the search tree by modifying 'dirs' in-place to skip hidden directories
+      and those listed in SKIP_DIRS (e.g., .venv, __pycache__).
+    - Ignores hidden files (starting with '.').
+
+    :param path_to_supplemental_files: Path to the directory containing supplemental materials.
+    :return: A list of full file paths.
+    """
     supplemental_files_paths = []
 
     for root, dirs, files in os.walk(f"{path_to_supplemental_files}"):
@@ -59,7 +84,21 @@ def add_supplemental_files(path_to_supplemental_files: Union[os.PathLike, str]) 
     return supplemental_files_paths
 
 def create_chat(pydantic_model: Type[pydantic.BaseModel], system_instructions, model_id: str = 'gemini-2.5-flash', search_included : bool = False, thinking_included : bool = False) -> None:
-    """Create chat for a single agent."""
+    """
+    Initializes and caches a chat session for a specific agent/schema.
+
+    This setup includes:
+    1. Schema binding for structured output.
+    2. System instruction configuration.
+    3. Logprobs enablement for confidence scoring.
+    4. Optional Google Search grounding and Thinking capabilities.
+
+    :param pydantic_model: The schema class defining the expected output.
+    :param system_instructions: The identity and instructions for the agent.
+    :param model_id: The model version to use.
+    :param search_included: Whether to enable Google Search tool.
+    :param thinking_included: Whether to enable thinking/reasoning config.
+    """
 
     if __CHATS.get(pydantic_model.__name__, None):
         LOG.info(f"Chat for {pydantic_model.__name__} already exists. Skipping initialization.")
@@ -91,7 +130,19 @@ def create_chat(pydantic_model: Type[pydantic.BaseModel], system_instructions, m
     __CHATS[pydantic_model.__name__] = structured_engine.get_chat_session()
 
 
-def ask_agent(pydantic_model: Type[pydantic.BaseModel], path_to_sub_dir: str):
+def ask_agent(pydantic_model: Type[pydantic.BaseModel], path_to_sub_dir: str) -> types.GenerateContentResponse:
+    """
+    Constructs a multi-modal prompt and sends it to the specified agent.
+
+    Prompt Construction Sequence:
+    1. Conference style guides and requirements.
+    2. Main paper PDF (expected at `path_to_sub_dir/main_paper.pdf`).
+    3. Supplemental files (recursively gathered from `path_to_sub_dir/supplemental_files`).
+
+    :param pydantic_model: The schema class identifying which agent's chat to use.
+    :param path_to_sub_dir: Path to the directory containing the paper and supplemental data.
+    :return: The raw response from the LLM, containing parsed structured data and logprobs.
+    """
     # We build the prompt as a flat list of native Parts
     agent_chat = __CHATS[pydantic_model.__name__]
     prompt_parts: List[types.Part] = list()
@@ -124,8 +175,16 @@ def ask_agent(pydantic_model: Type[pydantic.BaseModel], path_to_sub_dir: str):
 
     return agent_chat.send_message(prompt_parts)
 
-def ask_final(analysis_report: AnalysisReport):
-    """Native implementation of the Final Agent critique/generation logic."""
+def ask_final(analysis_report: AnalysisReport) -> types.GenerateContentResponse:
+    """
+    Constructs a prompt from the aggregated AnalysisReport and sends it to the Final Decision Agent.
+
+    This function extracts all check results (Safety, Anonymity, etc.) from the report
+    and presents them to the final agent to reach a terminal desk-rejection decision.
+
+    :param analysis_report: The object containing results from all individual auditor agents.
+    :return: The terminal decision response.
+    """
 
     final_agent_chat = __CHATS[FinalDecision.__name__]
     prompt_parts: List[types.Part] = list()
