@@ -60,6 +60,15 @@ class FinalDecision(BaseModel):
     analysis: AnalysisReport
 
 
+AGENT_SCHEMAS = {
+    'formatting_check': FormattingCheck,
+    'policy_check': PolicyCheck,
+    'visual_integrity_check': VisualIntegrityCheck,
+    'anonymity_check': AnonymityCheck,
+    'scope_check': ScopeCheck,
+    'safety_check': SafetyCheck,
+}
+
 def extract_possible_values(pydantic_scheme: Type[BaseModel], target_field: str) -> Tuple[Any]:
     field_info = pydantic_scheme.model_fields[target_field]
 
