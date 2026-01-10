@@ -1,13 +1,19 @@
 import fire
 import sys
 import os
+import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from ddr import desk_rejection_system
 from core.log import LOG, configure_logging
 from core.metrics import evaluate_submission_answers_only, evaluate_submission_full
 
-
+AVAILABLE_SYSTEMS = [
+    'ddr', # desk reject detecter
+    'ddr-1-iteration' # desk reject_detecter with only 1 iteration
+    'sasp',
+    'sacp',
+]
 
 class DeskRejectionCLI:
     """
@@ -42,21 +48,41 @@ class DeskRejectionCLI:
             LOG.error(f"Pipeline failed: {e}")
             sys.exit(1)
 
-    def evaluate_desk_rejection(self, directory: str, parallel: bool = False,
-                                answers_only: bool = False, think: bool = False, search: bool = False) -> None:
+    def evaluate_desk_rejection(self, directory: str,
+                                system_used: str = 'ddr',
+                                parallel: bool = False,
+                                answers_only: bool = False, think: bool = False, 
+                                search: bool = False, limit: int = None) -> None:
         """
         Runs an evaluation of all submissions in the directory and produces a report without a binding decision.
-        Usage: python cli.py evaluate_desk_rejection ./my_paper_folder
+        Usage: python cli.py evaluate_desk_rejection ./my_paper_folder --limit 5
         :param directory: Directory of the paper submission.
         :param parallel: Whether to run in parallel mode.
         :param answers_only: Evaluate only the precision of the answer or also consider the precision of the reason for desk rejection.
         :param think: Whether to use thinking for agents.
         :param search: Whether to use search for agents.
+        :param limit: Limits the amount of tested instances.
         """
         eval_results = {}
-        LOG.debug(f"--- EVALUATING {directory.split(sep='/')[-1]} ---")
-        
+        LOG.debug(f"--- EVALUATING {directory.split(sep='/')[-1]} with answers_only={answers_only} and think={think} and search={search} ---")
+
+        if system_used is None:
+            LOG.warn("No system was specified, using ddr")
+            system_used = 'ddr'
+
+        if system_used not in AVAILABLE_SYSTEMS:
+            LOG.warn(f"The system {system_used} is not supported. Defaulting to ddr")
+            system_used = 'ddr'
         subdirs = [os.path.join(directory, d) for d in os.listdir(directory) if os.path.isdir(os.path.join(directory, d))]
+        
+        # Apply the limit if provided
+        if limit <= 0 or not limit:
+            limit = len(subdirs)
+        else:
+            limit = min(limit, len(subdirs))
+
+        if limit < len(subdirs):
+            subdirs = random.sample(subdirs, limit)
         
         if parallel:
             with ThreadPoolExecutor() as executor:
