@@ -1,4 +1,4 @@
-from typing import Literal, Tuple, Any, Type, get_args
+from typing import Literal, Tuple, Any, Type, get_args, get_origin
 from pydantic import BaseModel, Field
 
 # Base schemas for individual checks
@@ -61,5 +61,9 @@ class FinalDecision(BaseModel):
 
 
 def extract_possible_values(pydantic_scheme: Type[BaseModel], target_field: str) -> Tuple[Any]:
-    field_info = AnonymityCheck.model_fields[target_field]
-    return get_args(field_info.annotation)
+    field_info = pydantic_scheme.model_fields[target_field]
+
+    if get_origin(field_info.annotation) is Literal:
+        return get_args(field_info.annotation)
+    else:
+        return tuple()
