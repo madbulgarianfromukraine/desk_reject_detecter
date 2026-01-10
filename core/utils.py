@@ -11,6 +11,20 @@ from core.schemas import AnalysisReport, FinalDecision
 
 
 __CHATS : Dict[str, chats.Chat] = {}
+__STYLE_GUIDES_CACHE : List[types.Part] = []
+
+def get_style_guides_parts() -> List[types.Part]:
+    """Get style guides as a list of Parts, using cache if available."""
+    global __STYLE_GUIDES_CACHE
+    if not __STYLE_GUIDES_CACHE:
+        LOG.info("Loading style guides into cache")
+        for style_guide in STYLE_GUIDES_DEFAULT:
+            with open(style_guide, "rb") as f:
+                __STYLE_GUIDES_CACHE.append(types.Part.from_bytes(
+                    data=f.read(),
+                    mime_type=get_optimized_fallback_mime(str(style_guide))
+                ))
+    return __STYLE_GUIDES_CACHE
 
 def get_optimized_fallback_mime(file_path: str) -> str:
     mime, _ = mimetypes.guess_type(file_path)
@@ -48,11 +62,13 @@ def create_chat(pydantic_model: Type[pydantic.BaseModel], system_instructions, m
     """Create chat for a single agent."""
 
     if __CHATS.get(pydantic_model.__name__, None):
-        LOG.info(f"Chat {__CHATS.get(pydantic_model.__name__)} already exists")
+        LOG.info(f"Chat for {pydantic_model.__name__} already exists. Skipping initialization.")
+        return
 
     engine = VertexEngine(model_id=model_id)
     structured_engine = engine.set_schema(schema=pydantic_model)
     structured_engine = structured_engine.set_system_instruction(instruction=types.Part.from_text(text=system_instructions))
+    structured_engine = structured_engine.set_logprobs()
 
     if thinking_included:
         LOG.debug("Adding thinking availability")
@@ -84,12 +100,7 @@ def ask_agent(pydantic_model: Type[pydantic.BaseModel], path_to_sub_dir: str):
         text="Here are the style guide files and requirements for the conference"
     ))
 
-    for style_guide in STYLE_GUIDES_DEFAULT:
-        with open(style_guide, "rb") as f:
-            prompt_parts.append(types.Part.from_bytes(
-                data=f.read(),
-                mime_type=get_optimized_fallback_mime(str(style_guide))
-            ))
+    prompt_parts.extend(get_style_guides_parts())
 
     # --- 2. Main Paper (Sequence: Text -> PDF File) ---
     prompt_parts.append(types.Part.from_text(text="Here is the main.pdf for the paper"))
