@@ -1,6 +1,9 @@
-from typing import Dict, Any
-from pandas import read_csv
+from typing import Dict, Any, List
+import pandas as pd
+import numpy as np
 from sklearn.metrics import precision_score, recall_score, f1_score
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
 from core.schemas import FinalDecision
 
@@ -14,43 +17,122 @@ def evaluate_submission_answers_only(evaluation_results: Dict[str, FinalDecision
 
     Input requirements:
     - Ground truth is expected in 'data/iclr/data/submissions.csv' with columns:
-      'directory_name' and 'label' ('Desk Rejected' or 'Not Desk Rejected').
+      'directory_name' and 'status' ('Desk Rejected' or 'Not Desk Rejected').
 
     :param evaluation_results: A dictionary mapping directory names to FinalDecision objects.
     """
 
-    submissions_df = read_csv("data/iclr/data/submissions.csv",
-                              true_values=["Desk Rejected"],
-                              false_values=["Not Desk Rejected"])
+    submissions_df = pd.read_csv("data/iclr/data/submissions.csv")
     predictions_dict = evaluation_results
 
-    submissions_df['y_pred'] = submissions_df['directory_name'].map(predictions_dict)
-    submissions_df = submissions_df.dropna(subset=['y_pred'])
+    submissions_df['y_pred_obj'] = submissions_df['directory_name'].map(predictions_dict)
+    submissions_df = submissions_df.dropna(subset=['y_pred_obj'])
 
     # 5. Calculate Metrics
-    # Note: Ensure your 'YES'/'NO' labels match the pos_label parameter
-    y_true = submissions_df['label']
-    y_pred = submissions_df['y_pred']
+    y_true = submissions_df['status'].map({"Desk Rejected": "YES", "Not Desk Rejected": "NO"})
+    y_pred = submissions_df['y_pred_obj'].apply(lambda x: x.desk_reject_decision)
 
-    precision = precision_score(y_true, y_pred, pos_label="YES")
-    recall = recall_score(y_true, y_pred, pos_label="YES")
-    f1 = f1_score(y_true, y_pred, pos_label="YES")
+    precision = precision_score(y_true, y_pred, pos_label="YES", zero_division=0)
+    recall = recall_score(y_true, y_pred, pos_label="YES", zero_division=0)
+    f1 = f1_score(y_true, y_pred, pos_label="YES", zero_division=0)
 
     print(f"Precision: {precision:.2f}")
     print(f"Recall: {recall:.2f}")
     print(f"F1 Score: {f1:.2f}")
 
 
-def evaluate_submission_full(evaluation_results: Dict[str, FinalDecision]) -> None:
+def calculate_similarity(text1: str, text2: str) -> float:
     """
-    (Placeholder) Performs a deep evaluation of reasoning and evidence snippets.
+    Calculates the cosine similarity between two strings using TF-IDF vectorization.
+    """
+    if not text1 or not text2:
+        return 1.0 if not text1 and not text2 else 0.0
+    
+    try:
+        vectorizer = TfidfVectorizer(token_pattern=r"(?u)\b\w+\b")
+        tfidf = vectorizer.fit_transform([text1, text2])
+        return float(cosine_similarity(tfidf[0:1], tfidf[1:2])[0][0])
+    except Exception:
+        return 0.0
 
-    Intended Logic:
-    - Compare the 'evidence_snippet' and 'reasoning' provided by the agents against 
-      human-annotated justifications.
-    - Measure the semantic similarity or overlap (e.g., using BERTScore or ROUGE)
-      to verify if the agent found the correct violation reasons, not just the right label.
 
+def evaluate_submission_full(evaluation_results: Dict[str, FinalDecision], system_used: str = 'ddr') -> None:
+    """
+    Performs a deep evaluation of reasoning and evidence snippets.
+    
+    Formula: 
+    score = (y_true_status == y_pred_status) * (y_true_category in y_pred_categories) * similarity(y_true_comment, y_pred_snippet)
+    
     :param evaluation_results: A dictionary mapping directory names to FinalDecision objects.
     """
-    pass
+    # Load Ground Truth
+    submissions_df = pd.read_csv("data/iclr/data/submissions.csv")
+    evaluation_results = pd.DataFrame()
+    # Mapping CSV status to model decision
+    STATUS_MAP = {
+        "Desk Rejected": "YES",
+        "Not Desk Rejected": "NO"
+    }
+    
+    # Mapping Category to AnalysisReport attribute
+    CATEGORY_TO_ATTR = {
+        "Formatting": "formatting_check",
+        "Anonymity": "anonymity_check",
+        "Policy": "policy_check",
+        "Scope": "scope_check",
+        "Code_of_Ethics": "safety_check",
+        "Visual_Integrity": "visual_integrity_check"
+    }
+
+    total_scores = []
+
+    for directory_name, decision in evaluation_results.items():
+        # Get ground truth
+        row = submissions_df[submissions_df['directory_name'] == directory_name]
+        if row.empty:
+            continue
+        row = row.iloc[0]
+
+        y_true_status = STATUS_MAP.get(row["status"], "NO")
+        y_true_category = row["category"] if pd.notna(row["category"]) and row["category"] != "" else "None"
+        y_true_comment = row["desk_reject_comments"] if pd.notna(row["desk_reject_comments"]) else ""
+
+        # 1. Status Match
+        status_match = 1 if y_true_status == decision.desk_reject_decision else 0
+        
+        # 2. Category Match
+        category_match = 1 if y_true_category in decision.categories else 0
+        
+        # 3. Evidence Similarity
+        similarity_score = 0.0
+        if y_true_status == "YES":
+            if status_match and category_match:
+                attr_name = CATEGORY_TO_ATTR.get(y_true_category)
+                if attr_name and hasattr(decision.analysis, attr_name):
+                    check_result = getattr(decision.analysis, attr_name)
+                    y_pred_snippet = check_result.evidence_snippet
+                    similarity_score = calculate_similarity(y_true_comment, y_pred_snippet)
+                else:
+                    similarity_score = 0.0
+            else:
+                similarity_score = 0.0
+        else: # y_true_status == "NO"
+            if status_match:
+                # If correctly not desk rejected, we expect "None" category and empty comment
+                if "None" in decision.categories:
+                    category_match = 1
+                    similarity_score = 1.0
+                else:
+                    category_match = 0
+                    similarity_score = 0.0
+            else:
+                similarity_score = 0.0
+
+        score = status_match * category_match * similarity_score
+        total_scores.append(score)
+
+    if total_scores:
+        final_score = np.mean(total_scores)
+        print(f"Full Evaluation Score: {final_score:.4f}")
+    else:
+        print("No matching submissions found for full evaluation.")
