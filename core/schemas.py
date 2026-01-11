@@ -1,4 +1,4 @@
-from typing import Literal, Tuple, Any, Type, get_args, get_origin
+from typing import Literal, Tuple, Any, Type, List, get_args, get_origin
 from pydantic import BaseModel, Field
 
 # Base schemas for individual checks
@@ -103,7 +103,7 @@ class FinalDecision(BaseModel):
     Terminal decision schema produced by the Program Chair (Final Agent).
     """
     desk_reject_decision: Literal["YES", "NO"]
-    primary_reason_category: Literal["Code_of_Ethics", "Anonymity", "Formatting", "Visual_Integrity", "Policy", "Scope", "None"]
+    categories: List[Literal["Code_of_Ethics", "Anonymity", "Formatting", "Visual_Integrity", "Policy", "Scope", "None"]]
     confidence_score: float = Field(ge=0.0, le=1.0)
     analysis: AnalysisReport
 
