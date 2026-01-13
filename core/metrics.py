@@ -6,7 +6,9 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 from core.schemas import FinalDecision
+from core.log import LOG
 
+__EVALUATION_RESULT_CSV= "data/iclr/data/evaluation_results.csv"
 
 def evaluate_submission_answers_only(evaluation_results: Dict[str, FinalDecision]) -> None:
     """
@@ -67,7 +69,10 @@ def evaluate_submission_full(evaluation_results: Dict[str, FinalDecision], syste
     """
     # Load Ground Truth
     submissions_df = pd.read_csv("data/iclr/data/submissions.csv")
-    evaluation_results = pd.DataFrame()
+    evaluation_results_df = submissions_df
+
+    evaluation_results_df = evaluation_results_df[['directory_name']]
+
     # Mapping CSV status to model decision
     STATUS_MAP = {
         "Desk Rejected": "YES",
@@ -129,10 +134,18 @@ def evaluate_submission_full(evaluation_results: Dict[str, FinalDecision], syste
                 similarity_score = 0.0
 
         score = status_match * category_match * similarity_score
+        evaluation_results_df[evaluation_results_df['directory_name'] == directory_name, 'category_match'] = category_match
+        evaluation_results_df[evaluation_results_df['directory_name'] == directory_name, 'status_match'] = status_match
+        evaluation_results_df[evaluation_results_df['directory_name'] == directory_name, 'similarity_score'] = similarity_score
+
         total_scores.append(score)
 
     if total_scores:
         final_score = np.mean(total_scores)
-        print(f"Full Evaluation Score: {final_score:.4f}")
+        LOG.debug(f"Full Evaluation Score: {final_score:.4f}")
+
+        evaluation_results_df.to_csv(path_or_buf=__EVALUATION_RESULT_CSV)
+        LOG.debug(f"Saved evaluation results to {__EVALUATION_RESULT_CSV}")
+
     else:
-        print("No matching submissions found for full evaluation.")
+        LOG.warn("No matching submissions found for full evaluation.")
