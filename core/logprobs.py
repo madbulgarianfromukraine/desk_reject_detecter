@@ -21,8 +21,8 @@ __LOGPROB_CANDIDATES = {
 # - 'desk_rejection_decision': The terminal YES/NO decision (0.2 weight).
 # - 'primary_reason_category': The categorized reason for the decision (0.8 weight).
 __FINAL_LOGPROB_CANDIDATES = {
-    "desk_rejection_decision" : 0.2,
-    "primary_reason_category" : 0.8
+    "desk_reject_decision" : 0.2,
+    "categories" : 0.8
 }
 
 def get_field_confidence(logprob_candidates: List, target_field: str, pydantic_scheme : Type[BaseModel]) -> float:
