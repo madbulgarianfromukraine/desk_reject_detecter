@@ -18,7 +18,7 @@ AGENT_MAPPING = {
     'safety_check': safety_agent.ask_safety_agent,
 }
 
-def create_chats(include_thinking: bool = False, include_search: bool = False) -> None:
+def create_chats(include_thinking: bool = False, include_search: bool = False, ttl_seconds: str = "180s") -> None:
     """
     Initializes the chat settings for all agents in the desk rejection system.
 
@@ -30,9 +30,9 @@ def create_chats(include_thinking: bool = False, include_search: bool = False) -
     """
     # 1. Initialize all agents in parallel
     initialization_tasks = [
-        (formatting_agent.create_chat_settings, {}),
+        (formatting_agent.create_chat_settings, {"ttl_seconds": ttl_seconds}),
         (policy_agent.create_chat_settings, {'search_included': include_search}),
-        (visual_agent.create_chat_settings, {}),
+        (visual_agent.create_chat_settings, {"ttl_seconds": ttl_seconds}),
         (anonymity_agent.create_chat_settings, {'search_included': include_search}),
         (scope_agent.create_chat_settings, {'thinking_included': include_thinking}),
         (safety_agent.create_chat_settings, {'thinking_included': include_thinking}),
