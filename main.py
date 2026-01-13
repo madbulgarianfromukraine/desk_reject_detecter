@@ -111,16 +111,19 @@ class DeskRejectionCLI:
                 desk_rejection_system = sacp
             case 'ddr-1-iteration':
                 def __run_ddr_1_iteration(path_sub_dir: Union[os.PathLike, str], think: bool = False, search: bool = False) -> FinalDecision:
-                    return ddr(path_sub_dir=path_sub_dir, think=think, search=search, iterations=1)
+                    return ddr(path_sub_dir=path_sub_dir, think=think, search=search, iterations=1, ttl_seconds="10800s")
 
                 desk_rejection_system = __run_ddr_1_iteration
             case 'ddr-think-search':
                 def __run_ddr_think_search(path_sub_dir: Union[os.PathLike, str]) -> FinalDecision:
-                    return ddr(path_sub_dir=path_sub_dir, think=True, search=True)
+                    return ddr(path_sub_dir=path_sub_dir, think=True, search=True, ttl_seconds="10800s")
 
                 desk_rejection_system = __run_ddr_think_search
             case _ :
-                desk_rejection_system = ddr
+                def __run_ddr_default(path_sub_dir: Union[os.PathLike, str], think: bool = False, search: bool = False) -> FinalDecision:
+                    return ddr(path_sub_dir=path_sub_dir, think=think, search=search, ttl_seconds="10800s")
+
+                desk_rejection_system = __run_ddr_default
 
         subdirs = [os.path.join(directory, d) for d in os.listdir(directory) if os.path.isdir(os.path.join(directory, d))]
         
