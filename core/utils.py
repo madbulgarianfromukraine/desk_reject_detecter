@@ -1,5 +1,5 @@
 import mimetypes
-from typing import List, Union, Dict, Type
+from typing import List, Union, Dict, Type, Optional
 import pydantic
 from google.genai import types, chats
 import os
@@ -11,6 +11,7 @@ from core.schemas import AnalysisReport, FinalDecision
 
 
 __CHATS : Dict[str, chats.Chat] = {}
+__ENGINES : Dict[str, VertexEngine] = {}
 __STYLE_GUIDES_CACHE : List[types.Part] = []
 
 def get_style_guides_parts() -> List[types.Part]:
@@ -145,14 +146,6 @@ def create_chat(pydantic_model: Type[pydantic.BaseModel], system_instructions, m
         )
     else:
         structured_engine.config.thinking_config = None
-
-    if search_included:
-        LOG.debug("Adding grounding search")
-        google_search_tool = types.Tool(
-            google_search=types.GoogleSearch()
-        )
-
-        structured_engine.config.tools = [google_search_tool]
 
     LOG.info(f"Creating chat for {pydantic_model.__name__}")
     __ENGINES[pydantic_model.__name__] = structured_engine
