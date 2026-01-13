@@ -83,7 +83,9 @@ def add_supplemental_files(path_to_supplemental_files: Union[os.PathLike, str]) 
 
     return supplemental_files_paths
 
-def create_chat(pydantic_model: Type[pydantic.BaseModel], system_instructions, model_id: str = 'gemini-2.5-flash', search_included : bool = False, thinking_included : bool = False) -> None:
+def create_chat(pydantic_model: Type[pydantic.BaseModel], system_instructions, model_id: str = 'gemini-2.5-flash',
+                search_included : bool = False, thinking_included : bool = False,
+                upload_style_guides: bool = False, ttl_seconds: str = "180s") -> None:
     """
     Initializes and caches a chat session for a specific agent/schema.
 
@@ -98,6 +100,8 @@ def create_chat(pydantic_model: Type[pydantic.BaseModel], system_instructions, m
     :param model_id: The model version to use.
     :param search_included: Whether to enable Google Search tool.
     :param thinking_included: Whether to enable thinking/reasoning config.
+    :param upload_style_guides: Whether to upload the style_guides cache to use.
+    :param ttl_seconds: How long to wait until the cache is deleted.
     """
 
     if __CHATS.get(pydantic_model.__name__, None):
@@ -105,9 +109,33 @@ def create_chat(pydantic_model: Type[pydantic.BaseModel], system_instructions, m
         return
 
     engine = VertexEngine(model_id=model_id)
+
+
+    # NEW: Create cache for style guides before creating the chat
+    if upload_style_guides:
+        style_guides = get_style_guides_parts()
+        if style_guides:
+            LOG.info(f"Creating context cache with style guides for {pydantic_model.__name__}")
+            cache = engine.create_cache(
+                contents=style_guides,
+                display_name=f"style_guides",
+                ttl_seconds=ttl_seconds
+            )
+            engine.set_cache(cache.name)
+            engine.set_system_instruction(instruction=system_instructions)
+        else:
+            # Fallback to non-cached settings
+            engine.set_system_instruction(instruction=system_instructions)
+
     structured_engine = engine.set_schema(schema=pydantic_model)
-    structured_engine = structured_engine.set_system_instruction(instruction=types.Part.from_text(text=system_instructions))
     structured_engine = structured_engine.set_logprobs()
+
+    if search_included:
+        LOG.debug("Adding grounding search")
+        google_search_tool = types.Tool(
+            google_search=types.GoogleSearch()
+        )
+        structured_engine.config.tools = [google_search_tool]
 
     if thinking_included:
         LOG.debug("Adding thinking availability")
@@ -127,7 +155,50 @@ def create_chat(pydantic_model: Type[pydantic.BaseModel], system_instructions, m
         structured_engine.config.tools = [google_search_tool]
 
     LOG.info(f"Creating chat for {pydantic_model.__name__}")
+    __ENGINES[pydantic_model.__name__] = structured_engine
     __CHATS[pydantic_model.__name__] = structured_engine.get_chat_session()
+
+
+def send_message_with_splitting(chat: chats.Chat, engine: VertexEngine, prompt_parts: List[types.Part]) -> Optional[types.GenerateContentResponse]:
+    """
+    Sends a message to the model, splitting it into parts if it exceeds the token limit.
+    Each part generates a structured response, which are then merged.
+
+    :param chat: The chat session to use.
+    :param engine: The engine containing model and configuration.
+    :param prompt_parts: The list of Parts to send.
+    :return: The merged response from the model.
+    """
+    limit = engine.get_model_limit()
+    total_tokens = engine.count_tokens(prompt_parts)
+
+    if total_tokens > limit:
+        LOG.info(f"Prompt tokens ({total_tokens}) exceed limit ({limit}). Splitting into parts.")
+        chunks = engine.split_contents(prompt_parts, limit)
+
+        responses = []
+        for i, chunk in enumerate(chunks):
+            LOG.info(f"Sending part {i+1}/{len(chunks)}")
+            # We use the full config (including schema) for each part
+            response = chat.send_message(chunk)
+            LOG.debug(f"Responded with: {response.parsed}")
+            responses.append(response)
+
+        if len(responses) <= 1:
+            return responses[0]
+
+        final_merge_prompt = f"""
+            Below are several partial desk-reject analysis reports for the same main_paper.pdf and its supplemental files.
+            Please merge them into a single, consistent JSON report as specified to you
+            If categories conflict, prioritize 'Policy' or 'Scope' over 'Formatting'.
+
+            PARTIAL REPORTS:
+            {chr(10).join([response.parsed for response in responses])}
+            """
+
+        return chat.send_message(types.Part.from_text(text=final_merge_prompt))
+    else:
+        return chat.send_message(prompt_parts)
 
 
 def ask_agent(pydantic_model: Type[pydantic.BaseModel], path_to_sub_dir: str) -> types.GenerateContentResponse:
@@ -145,16 +216,11 @@ def ask_agent(pydantic_model: Type[pydantic.BaseModel], path_to_sub_dir: str) ->
     """
     # We build the prompt as a flat list of native Parts
     agent_chat = __CHATS[pydantic_model.__name__]
+    engine = __ENGINES[pydantic_model.__name__]
     prompt_parts: List[types.Part] = list()
 
-    prompt_parts.append(types.Part.from_text(
-        text="Here are the style guide files and requirements for the conference"
-    ))
-
-    prompt_parts.extend(get_style_guides_parts())
-
     # --- 2. Main Paper (Sequence: Text -> PDF File) ---
-    prompt_parts.append(types.Part.from_text(text="Here is the main.pdf for the paper"))
+    prompt_parts.append(types.Part.from_text(text="Here is the main_paper.pdf for the paper"))
     with open(f"{path_to_sub_dir}/main_paper.pdf", "rb") as f:
         prompt_parts.append(types.Part.from_bytes(
             data=f.read(),
@@ -173,7 +239,7 @@ def ask_agent(pydantic_model: Type[pydantic.BaseModel], path_to_sub_dir: str) ->
                     mime_type=get_optimized_fallback_mime(s_file)
                 ))
 
-    return agent_chat.send_message(prompt_parts)
+    return send_message_with_splitting(agent_chat, engine, prompt_parts)
 
 def ask_final(analysis_report: AnalysisReport) -> types.GenerateContentResponse:
     """
@@ -187,6 +253,7 @@ def ask_final(analysis_report: AnalysisReport) -> types.GenerateContentResponse:
     """
 
     final_agent_chat = __CHATS[FinalDecision.__name__]
+    engine = __ENGINES[FinalDecision.__name__]
     prompt_parts: List[types.Part] = list()
 
     for key, val in vars(analysis_report).items():
@@ -197,4 +264,4 @@ def ask_final(analysis_report: AnalysisReport) -> types.GenerateContentResponse:
 
     # 3. Native chat.send_message
     # This automatically adds the prompt and model response to the session history
-    return final_agent_chat.send_message(prompt_parts)
+    return send_message_with_splitting(final_agent_chat, engine, prompt_parts)
