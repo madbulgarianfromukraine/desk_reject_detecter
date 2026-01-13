@@ -4,6 +4,11 @@ import os
 import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Callable, Optional, Union
+import google.auth
+from google.auth.exceptions import DefaultCredentialsError
+
+from dotenv import load_dotenv
+load_dotenv(dotenv_path='./google.env', verbose=True) # importing all the env variables before our project imports.
 
 from systems.ddr import ddr
 from core.schemas import FinalDecision
@@ -17,6 +22,33 @@ AVAILABLE_SYSTEMS = [
     'sasp', #single agent single prompt
     'sacp', # single agent multiple prompt
 ]
+
+def ensure_authenticated():
+    try:
+        # Attempt to refresh/load credentials
+        credentials, project = google.auth.default()
+
+        # Check if they are valid (or can be refreshed)
+        if not credentials.valid:
+            from google.auth.transport.requests import Request
+
+            credentials.refresh(Request())
+
+        print(f"✅ Already authenticated for project: {project}")
+        return credentials
+
+    except (DefaultCredentialsError, Exception):
+        # This block runs ONLY if no credentials are found
+        print("❌ No valid credentials found. Launching login...")
+        try:
+            subprocess.run(["gcloud", "auth", "application-default", "login"], check=True)
+            # Re-verify after login
+            credentials, project = google.auth.default()
+            return credentials
+        except subprocess.CalledProcessError:
+            print("🚨 Login failed or was cancelled by the user.")
+            return None
+
 
 class DeskRejectionCLI:
     """
@@ -127,4 +159,5 @@ class DeskRejectionCLI:
 
 
 if __name__ == "__main__":
+    ensure_authenticated()
     fire.Fire(DeskRejectionCLI)

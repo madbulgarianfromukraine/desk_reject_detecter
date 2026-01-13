@@ -2,14 +2,13 @@ from google import genai
 from google.genai import types
 from pydantic import BaseModel
 from typing import Type, Optional, List
-from dotenv import load_dotenv
+from core.log import LOG
 
 # 1. The Singleton Client
 # This executes once when the module is imported.
 # It holds the connection pool open for the entire lifetime of your app.
 # By sharing one genai.Client, we ensure efficient resource usage and connection pooling
 # across all agent instances.
-load_dotenv(dotenv_path='./google.env', verbose=True)
 _SHARED_CLIENT = genai.Client(vertexai=True)
 
 
