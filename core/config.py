@@ -94,10 +94,54 @@ class VertexEngine:
         self.model_id = model_id
         return self
 
+    def create_cache(self, contents: List[types.Part], display_name: str = None, ttl_seconds : str ="180s"):
+        """
+        Creates a context cache for the current model.
+
+        :param contents: The contents to cache (e.g., style guides).
+        :param display_name: Optional display name for the cache.
+        :return: The created CachedContent object.
+        """
+        global __SHARED_CACHE
+        if __SHARED_CACHE is None:
+            __SHARED_CACHE = self.client.caches.create(
+                model=self.model_id,
+                config=types.CreateCachedContentConfig(
+                    contents=contents,
+                    display_name=display_name,
+                    ttl=ttl_seconds
+                )
+            )
+        return __SHARED_CACHE
+
+    def set_cache(self, cache_name: str):
+        """
+        Configures the engine to use a specific context cache.
+
+        :param cache_name: The resource name of the cache.
+        :return: self (for method chaining).
+        """
+        self.config.cached_content = cache_name
+        return self
+
+    def get_model_limit(self) -> int:
+        """
+        Returns the input token limit for the current model dynamically via the API.
+        """
+        try:
+            # Assuming self.client is your initialized genai.Client
+            model_info = self.client.models.get(model=self.model_id)
+
+            # input_token_limit is the attribute that stores the context window size
+            return model_info.input_token_limit or 32000
+        except Exception as e:
+            LOG.error(f"Error fetching model limits: {e}. Using conservative default.")
+            return 32000
+
     def generate(self, contents: List[types.Part]):
         """
         Executes a generation request using the instance's unique config and the shared client.
-
+        Supposed for the amount of tokens less than maximal.
         :param contents: A list of Parts (text, images, PDFs) to send to the model.
         :return: The GenerateContentResponse from the API.
         """
@@ -106,6 +150,46 @@ class VertexEngine:
             contents=contents,
             config=self.config
         )
+
+    def count_tokens(self, contents: List[types.Part]) -> int:
+        """
+        Counts the number of tokens in the provided contents.
+
+        :param contents: A list of Parts to count tokens for.
+        :return: Total token count.
+        """
+        return self.client.models.count_tokens(
+            model=self.model_id,
+            contents=contents
+        ).total_tokens
+
+    def split_contents(self, contents: List[types.Part], limit: int) -> List[List[types.Part]]:
+        """
+        Splits a list of Parts into multiple chunks, each within the token limit.
+
+        :param contents: The list of Parts to split.
+        :param limit: The maximum number of tokens allowed per chunk.
+        :return: A list of chunks (each chunk is a list of Parts).
+        """
+        chunks = []
+        current_chunk = []
+        current_tokens = 0
+
+        for part in contents:
+            part_tokens = self.count_tokens([part])
+            if current_tokens + part_tokens > limit:
+                if current_chunk:
+                    chunks.append(current_chunk)
+                current_chunk = [part]
+                current_tokens = part_tokens
+            else:
+                current_chunk.append(part)
+                current_tokens += part_tokens
+
+        if current_chunk:
+            chunks.append(current_chunk)
+
+        return chunks
 
     def get_chat_session(self, history: Optional[List[types.Content]] = None):
         """
