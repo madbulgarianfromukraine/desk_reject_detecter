@@ -2,6 +2,7 @@ import fire
 import sys
 import os
 import random
+import subprocess
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Callable, Optional, Union
 import google.auth
