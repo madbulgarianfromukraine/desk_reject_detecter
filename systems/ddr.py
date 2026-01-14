@@ -72,7 +72,7 @@ def ddr(path_sub_dir: Union[os.PathLike, str], think: bool = False, search: bool
         LOG.info(f"--- Iteration {iteration + 1} ---")
         LOG.info(f"Running agents: {list(agents_to_run.keys())}")
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=len(agents_to_run)) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=len(agents_to_run), thread_name_prefix="AgentThread") as executor:
             future_to_agent = {
                 executor.submit(func, path_sub_dir): key 
                 for key, func in agents_to_run.items()

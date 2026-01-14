@@ -40,6 +40,6 @@ def create_chats(model_id: str = 'gemini-2.5-flash', include_thinking: bool = Fa
         (final_decision_agent.create_chat_settings, {'model_id': model_id, 'thinking_included': include_thinking}),
     ]
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=len(initialization_tasks)) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(initialization_tasks), thread_name_prefix="ChatCreationThread") as executor:
         futures = [executor.submit(func, **kwargs) for func, kwargs in initialization_tasks]
         concurrent.futures.wait(futures)

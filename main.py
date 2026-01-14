@@ -138,7 +138,7 @@ class DeskRejectionCLI:
             subdirs = random.sample(subdirs, limit)
         
         if parallel:
-            with ThreadPoolExecutor() as executor:
+            with ThreadPoolExecutor(thread_name_prefix="Directory_Evaluation") as executor:
                 future_to_eval_result = {executor.submit(desk_rejection_system, diry): diry for diry in subdirs}
 
                 for future in as_completed(future_to_eval_result):
@@ -148,6 +148,7 @@ class DeskRejectionCLI:
                         LOG.debug(f"{evaluation_paper_dir} determination of desk rejection completed.")
                     except Exception as exc:
                         LOG.error(f"{evaluation_paper_dir} generated an exception: {exc}")
+
 
         else:
             for diry in subdirs:
