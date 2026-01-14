@@ -13,7 +13,7 @@ from core.schemas import AnalysisReport, FinalDecision
 __CHATS : Dict[str, chats.Chat] = {}
 __ENGINES : Dict[str, VertexEngine] = {}
 __STYLE_GUIDES_CACHE : List[types.Part] = []
-__CACHES = Dict[str, types.CachedContent] = {}
+__CACHE : Dict[str, types.CachedContent] = {}
 
 def get_style_guides_parts() -> List[types.Part]:
     """Get style guides as a list of Parts, using cache if available."""
@@ -85,7 +85,7 @@ def add_supplemental_files(path_to_supplemental_files: Union[os.PathLike, str]) 
 
     return supplemental_files_paths
 
-def create_chat(pydantic_model: Type[pydantic.BaseModel], system_instructions, model_id: str = 'gemini-2.5-flash',
+def create_chat(pydantic_model: Type[pydantic.BaseModel], system_instructions: str, model_id: str = 'gemini-2.5-flash',
                 search_included : bool = False, thinking_included : bool = False,
                 upload_style_guides: bool = False, ttl_seconds: str = "180s") -> None:
     """
@@ -112,40 +112,33 @@ def create_chat(pydantic_model: Type[pydantic.BaseModel], system_instructions, m
 
     engine = VertexEngine(model_id=model_id)
 
-
+    structured_engine = engine.set_schema(schema=pydantic_model)
     # NEW: Create cache for style guides before creating the chat
     if upload_style_guides:
         style_guides = get_style_guides_parts()
         if style_guides:
-            tools = []
-            if search_included:
-                LOG.debug("Adding grounding search")
-                google_search_tool = types.Tool(
-                    google_search=types.GoogleSearch()
-                )
-                tools.append(google_search_tool)
 
+            style_guides.insert(0, types.Part.from_text(text=system_instructions))
             LOG.info(f"Creating context cache with style guides for {pydantic_model.__name__}")
-            cache = engine.create_cache(
+            cache = structured_engine.create_cache(
                 contents=style_guides,
                 display_name=f"style_guides",
-                ttl_seconds=ttl_seconds,
-                tools = tools
+                ttl_seconds=ttl_seconds
             )
-            engine.set_cache(cache.name)
-            engine.set_system_instruction(instruction=system_instructions)
+            structured_engine.set_cache(cache.name)
+            __CACHE[pydantic_model.__name__] = cache
         else:
             # Fallback to non-cached settings
-            engine.set_system_instruction(instruction=system_instructions)
+            structured_engine.set_system_instruction(instruction=system_instructions)
     else:
+        structured_engine.set_system_instruction(instruction=system_instructions)
         if search_included:
             LOG.debug("Adding grounding search")
             google_search_tool = types.Tool(
                 google_search=types.GoogleSearch()
             )
-            engine.config.tools = [google_search_tool]
+            structured_engine.config.tools = [google_search_tool]
 
-    structured_engine = engine.set_schema(schema=pydantic_model)
     structured_engine = structured_engine.set_logprobs()
 
     if thinking_included:
@@ -268,3 +261,27 @@ def ask_final(analysis_report: AnalysisReport) -> types.GenerateContentResponse:
     # 3. Native chat.send_message
     # This automatically adds the prompt and model response to the session history
     return send_message_with_splitting(final_agent_chat, engine, prompt_parts)
+
+
+def cleanup_caches() -> None:
+    """
+    Cleans up the shared cache to free resources.
+
+    This function deletes the shared cached content from the Google Gemini API.
+    Should be called on program exit or on KeyboardInterrupt to prevent resource wastage.
+
+    :return: None
+    """
+    engine = VertexEngine()
+    for cache in __CACHE.values():
+        if cache is None:
+            LOG.info("No cache to clean up.")
+            return
+
+        try:
+            LOG.info(f"Deleting cache: {cache.name}")
+            engine.client.caches.delete(name=cache.name)
+            LOG.info("Cache cleanup completed successfully.")
+        except Exception as e:
+            LOG.error(f"Error during cache cleanup: {e}")
+
