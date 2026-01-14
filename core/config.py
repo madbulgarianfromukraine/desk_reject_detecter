@@ -93,8 +93,7 @@ class VertexEngine:
         self.model_id = model_id
         return self
 
-    def create_cache(self, contents: List[types.Part], display_name: str = None, ttl_seconds : str ="180s",
-                     tools: List[types.Tool] = []):
+    def create_cache(self, contents: List[types.Part], display_name: str = None, ttl_seconds : str ="180s"):
         """
         Creates a context cache for the current model.
 
@@ -109,10 +108,10 @@ class VertexEngine:
             config=types.CreateCachedContentConfig(
                 contents=contents,
                 display_name=display_name,
-                ttl=ttl_seconds,
-                tools = tools
+                ttl=ttl_seconds
             )
         )
+
         return cache
 
     def set_cache(self, cache_name: str):
