@@ -230,9 +230,13 @@ def ask_agent(pydantic_model: Type[pydantic.BaseModel], path_to_sub_dir: str) ->
         supplemental_files = add_supplemental_files(supp_path)
         for s_file in supplemental_files:
             with open(s_file, "rb") as f:
+                f_read = f.read()
+                if len(f_read) <= 0:
+                    continue
+                s_file_mime = get_optimized_fallback_mime(s_file)
                 prompt_parts.append(types.Part.from_bytes(
-                    data=f.read(),
-                    mime_type=get_optimized_fallback_mime(s_file)
+                    data=f_read,
+                    mime_type=s_file_mime
                 ))
 
     return send_message_with_splitting(agent_chat, engine, prompt_parts)
