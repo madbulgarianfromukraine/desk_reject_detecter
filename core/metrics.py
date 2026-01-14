@@ -1,4 +1,5 @@
 from typing import Dict, Any, List
+import re
 import pandas as pd
 import numpy as np
 from sklearn.metrics import precision_score, recall_score, f1_score
@@ -144,7 +145,8 @@ def evaluate_submission_full(evaluation_results: Dict[str, FinalDecision], syste
         final_score = np.mean(total_scores)
         LOG.debug(f"Full Evaluation Score: {final_score:.4f}")
 
-        evaluation_results_df.to_csv(path_or_buf=__EVALUATION_RESULT_CSV)
+        filename_suffix= re.sub(r'[^a-zA-Z0-9]', '_', system_used)
+        evaluation_results_df.to_csv(path_or_buf=f"{__EVALUATION_RESULT_CSV}_{filename_suffix}")
         LOG.debug(f"Saved evaluation results to {__EVALUATION_RESULT_CSV}")
 
     else:
