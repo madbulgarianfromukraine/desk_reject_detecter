@@ -13,6 +13,7 @@ from core.schemas import AnalysisReport, FinalDecision
 __CHATS : Dict[str, chats.Chat] = {}
 __ENGINES : Dict[str, VertexEngine] = {}
 __STYLE_GUIDES_CACHE : List[types.Part] = []
+__CACHES = Dict[str, types.CachedContent] = {}
 
 def get_style_guides_parts() -> List[types.Part]:
     """Get style guides as a list of Parts, using cache if available."""
@@ -116,27 +117,36 @@ def create_chat(pydantic_model: Type[pydantic.BaseModel], system_instructions, m
     if upload_style_guides:
         style_guides = get_style_guides_parts()
         if style_guides:
+            tools = []
+            if search_included:
+                LOG.debug("Adding grounding search")
+                google_search_tool = types.Tool(
+                    google_search=types.GoogleSearch()
+                )
+                tools.append(google_search_tool)
+
             LOG.info(f"Creating context cache with style guides for {pydantic_model.__name__}")
             cache = engine.create_cache(
                 contents=style_guides,
                 display_name=f"style_guides",
-                ttl_seconds=ttl_seconds
+                ttl_seconds=ttl_seconds,
+                tools = tools
             )
             engine.set_cache(cache.name)
             engine.set_system_instruction(instruction=system_instructions)
         else:
             # Fallback to non-cached settings
             engine.set_system_instruction(instruction=system_instructions)
+    else:
+        if search_included:
+            LOG.debug("Adding grounding search")
+            google_search_tool = types.Tool(
+                google_search=types.GoogleSearch()
+            )
+            engine.config.tools = [google_search_tool]
 
     structured_engine = engine.set_schema(schema=pydantic_model)
     structured_engine = structured_engine.set_logprobs()
-
-    if search_included:
-        LOG.debug("Adding grounding search")
-        google_search_tool = types.Tool(
-            google_search=types.GoogleSearch()
-        )
-        structured_engine.config.tools = [google_search_tool]
 
     if thinking_included:
         LOG.debug("Adding thinking availability")

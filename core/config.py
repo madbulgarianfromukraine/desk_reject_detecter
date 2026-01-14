@@ -11,7 +11,6 @@ from core.log import LOG
 # across all agent instances.
 _SHARED_CLIENT = genai.Client(vertexai=True)
 
-
 class VertexEngine:
     """
     A wrapper around the Google GenAI client that manages configuration state for LLM agents.
@@ -94,7 +93,8 @@ class VertexEngine:
         self.model_id = model_id
         return self
 
-    def create_cache(self, contents: List[types.Part], display_name: str = None, ttl_seconds : str ="180s"):
+    def create_cache(self, contents: List[types.Part], display_name: str = None, ttl_seconds : str ="180s",
+                     tools: List[types.Tool] = []):
         """
         Creates a context cache for the current model.
 
@@ -102,17 +102,18 @@ class VertexEngine:
         :param display_name: Optional display name for the cache.
         :return: The created CachedContent object.
         """
-        global __SHARED_CACHE
-        if __SHARED_CACHE is None:
-            __SHARED_CACHE = self.client.caches.create(
-                model=self.model_id,
-                config=types.CreateCachedContentConfig(
-                    contents=contents,
-                    display_name=display_name,
-                    ttl=ttl_seconds
-                )
+        if len(tools) <= 0:
+            tools = None
+        cache = self.client.caches.create(
+            model=self.model_id,
+            config=types.CreateCachedContentConfig(
+                contents=contents,
+                display_name=display_name,
+                ttl=ttl_seconds,
+                tools = tools
             )
-        return __SHARED_CACHE
+        )
+        return cache
 
     def set_cache(self, cache_name: str):
         """
@@ -130,13 +131,25 @@ class VertexEngine:
         """
         try:
             # Assuming self.client is your initialized genai.Client
-            model_info = self.client.models.get(model=self.model_id)
+            model_info = self.client.models.get(model=f'{self.model_id}')
 
             # input_token_limit is the attribute that stores the context window size
-            return model_info.input_token_limit or 32000
+            return model_info.input_token_limit or self.__get_model_limit_local(model_id=self.model_id)
         except Exception as e:
             LOG.error(f"Error fetching model limits: {e}. Using conservative default.")
             return 32000
+
+    def __get_model_limit_local(self, model_id: str = "gemini-2.5-flash"):
+        model_id_parts = model_id.split("-", maxsplit=2)[1:]
+        if model_id_parts[1].startswith("flash") or model_id_parts[1].startswith("pro"):
+            if model_id_parts[1].endswith("image"):
+                return 65_536
+            elif len(model_id_parts[1]) >= 30:
+                return 131_072
+            elif len(model_id_parts) >= 20:
+                return 8_192
+            else:
+                return 1_048_576
 
     def generate(self, contents: List[types.Part]):
         """
