@@ -18,7 +18,7 @@ AGENT_MAPPING = {
     'safety_check': safety_agent.ask_safety_agent,
 }
 
-def create_chats(model_id: str = 'gemini-2.5-flash', include_thinking: bool = False, include_search: bool = False, ttl_seconds: str = "180s") -> None:
+def create_chats(model_id: str = 'gemini-2.5-flash', include_thinking: bool = False, include_search: bool = False, ttl_seconds: str = "300s") -> None:
     """
     Initializes the chat settings for all agents in the desk rejection system.
 

@@ -87,7 +87,7 @@ def add_supplemental_files(path_to_supplemental_files: Union[os.PathLike, str]) 
 
 def create_chat(pydantic_model: Type[pydantic.BaseModel], system_instructions: str, model_id: str = 'gemini-2.5-flash',
                 search_included : bool = False, thinking_included : bool = False,
-                upload_style_guides: bool = False, ttl_seconds: str = "180s") -> None:
+                upload_style_guides: bool = False, ttl_seconds: str = "300s") -> None:
     """
     Initializes and caches a chat session for a specific agent/schema.
 
