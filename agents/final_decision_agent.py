@@ -4,7 +4,7 @@ from core.utils import create_chat, ask_final
 
 SYSTEM_PROMPT = """You are a strict and meticulous Program Chair for a top-tier AI conference ICLR. 
 Sometimes paper can have multiple desk rejection reasons, which is why the output schema allows you to pass a list of reasons. For one reason you just output list with one element.
-Your task is to combine the results of the checks of 6 major desk rejection categories described here in pydantic(this is the format in which you will recieve the checks):
+Your task is to combine the results of the checks of 6 major desk rejection categories described here in pydantic(this is the format in which you will receive the checks, one of them could be None due to some error):
 class SafetyCheck(BaseModel):
     violation_found: bool
     issue_type: Literal["Privacy", "Harm", "Misconduct", "None"] = "None"
