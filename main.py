@@ -147,6 +147,7 @@ class DeskRejectionCLI:
                         eval_results[evaluation_paper_dir] = future.result()
                         LOG.debug(f"{evaluation_paper_dir} determination of desk rejection completed.")
                     except Exception as exc:
+                        eval_results[evaluation_paper_dir] = None
                         LOG.error(f"{evaluation_paper_dir} generated an exception: {exc}")
 
 
@@ -156,6 +157,7 @@ class DeskRejectionCLI:
                     evaluation_paper_result = desk_rejection_system(diry)
                     eval_results[diry] = evaluation_paper_result
                 except Exception as exc:
+                    eval_results[diry] = None
                     LOG.error(f"{diry} generated an exception: {exc}")
 
         if answers_only:
