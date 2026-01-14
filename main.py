@@ -15,6 +15,7 @@ from systems.ddr import ddr
 from core.schemas import FinalDecision
 from core.log import LOG, configure_logging
 from core.metrics import evaluate_submission_answers_only, evaluate_submission_full
+from core.utils import cleanup_caches
 
 AVAILABLE_SYSTEMS = [
     'ddr', # desk reject detecter
@@ -163,5 +164,12 @@ class DeskRejectionCLI:
 
 
 if __name__ == "__main__":
-    ensure_authenticated()
-    fire.Fire(DeskRejectionCLI)
+    try:
+        ensure_authenticated()
+        fire.Fire(DeskRejectionCLI)
+    except KeyboardInterrupt:
+        LOG.info("Received KeyboardInterrupt. Cleaning up resources...")
+        cleanup_caches()
+        sys.exit(0)
+    finally:
+        cleanup_caches()
