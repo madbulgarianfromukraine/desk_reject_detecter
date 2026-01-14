@@ -101,8 +101,6 @@ class VertexEngine:
         :param display_name: Optional display name for the cache.
         :return: The created CachedContent object.
         """
-        if len(tools) <= 0:
-            tools = None
         cache = self.client.caches.create(
             model=self.model_id,
             config=types.CreateCachedContentConfig(
