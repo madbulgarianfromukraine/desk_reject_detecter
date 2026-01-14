@@ -49,7 +49,7 @@ def ddr(path_sub_dir: Union[os.PathLike, str], think: bool = False, search: bool
     :return: A FinalDecision object containing the terminal decision and aggregated analysis.
     :raises RuntimeError: If an agent fails to provide a result after all iterations.
     """
-    LOG.info("--- Starting Desk Rejection Protocol ---")
+    LOG.info(f"--- Starting Desk Rejection Protocol for submission={path_sub_dir}---")
 
     create_chats(model_id=MODEL_ID, include_thinking=think, include_search=search, ttl_seconds=ttl_seconds)
 
@@ -59,7 +59,6 @@ def ddr(path_sub_dir: Union[os.PathLike, str], think: bool = False, search: bool
     agent_results : Dict[str, Optional[Type[pydantic.BaseModel]]] = {key: None for key in AGENT_MAPPING.keys()}
     
     for iteration in range(MAX_ITERATIONS):
-        LOG.info(f"--- Iteration {iteration + 1} ---")
         
         # Identify agents that still need to be run
         agents_to_run = {}
@@ -70,7 +69,7 @@ def ddr(path_sub_dir: Union[os.PathLike, str], think: bool = False, search: bool
         if not agents_to_run:
             LOG.info("All agents satisfied confidence threshold.")
             break
-            
+        LOG.info(f"--- Iteration {iteration + 1} ---")
         LOG.info(f"Running agents: {list(agents_to_run.keys())}")
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=len(agents_to_run)) as executor:
