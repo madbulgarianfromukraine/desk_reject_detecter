@@ -1,6 +1,7 @@
 from typing import Union, Dict, Optional, Type, List
 
 import pydantic
+import time
 
 from core.schemas import (
     FinalDecision, AnalysisReport,
@@ -8,6 +9,7 @@ from core.schemas import (
 )
 from core.logprobs import combine_confidences
 from core.log import LOG
+from core.metrics import SubmissionMetrics, get_total_input_tokens, get_total_output_tokens
 
 # Import Agents
 from agents import final_decision_agent
@@ -57,7 +59,7 @@ def ddr(path_sub_dir: Union[os.PathLike, str], think: bool = False, search: bool
     MAX_ITERATIONS = iterations
     
     agent_results : Dict[str, Optional[Type[pydantic.BaseModel]]] = {key: None for key in AGENT_MAPPING.keys()}
-    
+    start_time = time.time()
     for iteration in range(MAX_ITERATIONS):
         
         # Identify agents that still need to be run
@@ -121,5 +123,7 @@ def ddr(path_sub_dir: Union[os.PathLike, str], think: bool = False, search: bool
     final_decision_response = final_decision_agent.ask_final_decision_agent(analysis_report=analysis_report)
     final_decision_response.parsed.confidence_score = combine_confidences(llm_response=final_decision_response, pydantic_scheme=FinalDecision, final_agent=True)
 
-    return final_decision_response.parsed
+    end_time = time.time()
+    return SubmissionMetrics(final_decision=final_decision_response.parsed, total_input_token_count=get_total_input_tokens(),
+                             total_output_token_count=get_total_output_tokens(), total_elapsed_time=end_time - start_time)
 

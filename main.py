@@ -14,7 +14,7 @@ load_dotenv(dotenv_path='./google.env', verbose=True) # importing all the env va
 from systems.ddr import ddr
 from core.schemas import FinalDecision
 from core.log import LOG, configure_logging
-from core.metrics import evaluate_submission_answers_only, evaluate_submission_full
+from core.metrics import evaluate_submission_answers_only, evaluate_submission_full, SubmissionMetrics
 from core.utils import cleanup_caches
 
 AVAILABLE_SYSTEMS = [
@@ -80,8 +80,17 @@ class DeskRejectionCLI:
 
         try:
             # Call the pipeline from main.py
-            final_decision = ddr(directory, think=think, search=search, iterations=iterations)
-            return final_decision.model_dump_json()
+            submission_metrics = ddr(directory, think=think, search=search, iterations=iterations)
+            if not submission_metrics:
+                LOG.error("Submission failed to provide results for at least one of the agents")
+                return "Submission failed"
+
+            print(f"Final report of the submission={directory.split(sep='/')[-1]} evaluation.")
+            print(f"Submission took total of {submission_metrics.total_elapsed_time} seconds.")
+            print(f"Total input tokens are {submission_metrics.total_input_token_count} and total output tokens are {submission_metrics.total_output_token_count}.")
+            print("And here is the final decision report:")
+
+            return submission_metrics.final_decision.model_dump_json()
         except Exception as e:
             LOG.error(f"Pipeline failed: {e}")
             sys.exit(1)
@@ -111,17 +120,17 @@ class DeskRejectionCLI:
                 from systems.sacp import sacp
                 desk_rejection_system = sacp
             case 'ddr-1-iteration':
-                def __run_ddr_1_iteration(path_sub_dir: Union[os.PathLike, str], think: bool = False, search: bool = False) -> FinalDecision:
+                def __run_ddr_1_iteration(path_sub_dir: Union[os.PathLike, str], think: bool = False, search: bool = False) -> SubmiossionMetrics:
                     return ddr(path_sub_dir=path_sub_dir, think=think, search=search, iterations=1, ttl_seconds="10800s")
 
                 desk_rejection_system = __run_ddr_1_iteration
             case 'ddr-think-search':
-                def __run_ddr_think_search(path_sub_dir: Union[os.PathLike, str]) -> FinalDecision:
+                def __run_ddr_think_search(path_sub_dir: Union[os.PathLike, str]) -> SubmissionMetrics:
                     return ddr(path_sub_dir=path_sub_dir, think=True, search=True, ttl_seconds="10800s")
 
                 desk_rejection_system = __run_ddr_think_search
             case _ :
-                def __run_ddr_default(path_sub_dir: Union[os.PathLike, str], think: bool = False, search: bool = False) -> FinalDecision:
+                def __run_ddr_default(path_sub_dir: Union[os.PathLike, str], think: bool = False, search: bool = False) -> SubmissionMetrics:
                     return ddr(path_sub_dir=path_sub_dir, think=think, search=search, ttl_seconds="10800s")
 
                 desk_rejection_system = __run_ddr_default
