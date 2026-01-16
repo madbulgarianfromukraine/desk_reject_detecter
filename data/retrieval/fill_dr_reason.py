@@ -30,6 +30,7 @@ engine.set_system_instruction(
     * Scope: "Scope", "Language"
     
     Ignore all the NaNs at the input, but return the index for each classified category(The corresponding indices from the input value)
+    categories and indices attributes must have the same length.
     """
 )
 
