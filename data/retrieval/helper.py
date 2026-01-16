@@ -72,10 +72,12 @@ def filter_proper_accepted_papers(
 
     def __process_accepted_paper(submission: openreview.api.Note) -> Optional[Dict[str, Any]]:
         # 1. Check for mandatory PDF path
+
         pdf_path = get_note_value(submission, 'pdf')
         if pdf_path is None:
             print(f"Not Desk Rejected Submission:❌ Skipping Submission ID {submission.id} and {submission.content['title']}: No main PDF path found.")
             return None
+
 
         # 2. Fetch related notes and check for decision
         try:
@@ -109,6 +111,7 @@ def filter_proper_accepted_papers(
                 sub = future_map[future]
                 print(f"Not Desk Rejected Submission:❌ Skipping Submission ID {sub.id}: worker error: {e}")
                 continue
+
             if result is not None:
                 submissions_to_process.append(result)
 

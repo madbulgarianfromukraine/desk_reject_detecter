@@ -66,7 +66,7 @@ def main_accepted(client: openreview.api.OpenReviewClient) -> None:
 
     # Process each submission individually to avoid holding the GIL for long loops
     for item in submissions_to_process:
-        process_single_submission(client=client, item=item, csv_data=final_csv_data, desk_rejection=False)
+        process_single_submission(client=client, item=item, csv_data=final_csv_data, desk_rejection=False, is_reference=True)
 
 def main_withdrawal(client: openreview.api.OpenReviewClient) -> None:
     global WITHDRAWAL_IDS, ACCEPTED_RETREVING_BARRIER
