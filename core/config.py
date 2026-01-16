@@ -9,7 +9,8 @@ from core.log import LOG
 # It holds the connection pool open for the entire lifetime of your app.
 # By sharing one genai.Client, we ensure efficient resource usage and connection pooling
 # across all agent instances.
-_SHARED_CLIENT = genai.Client(vertexai=True)
+_SHARED_CLIENT = genai.Client(vertexai=True,
+                              http_options= types.HttpOptions(timeout=180_000)) #180 seconds = 3 minutes for better processing
 
 class VertexEngine:
     """
