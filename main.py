@@ -135,6 +135,7 @@ class DeskRejectionCLI:
             limit = min(limit, len(subdirs))
 
         if limit < len(subdirs):
+            random.seed(42)
             subdirs = random.sample(subdirs, limit)
         
         if parallel:
