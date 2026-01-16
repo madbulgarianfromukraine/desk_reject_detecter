@@ -1,4 +1,3 @@
-import mimetypes
 from typing import List, Union, Dict, Type, Optional
 import pydantic
 from google.genai import types, chats
@@ -6,84 +5,15 @@ import os
 
 from core.config import VertexEngine  # Import the configured LLM
 from core.log import LOG
-from core.constants import SKIP_DIRS, STYLE_GUIDES_DEFAULT, SUPPORTED_MIME_TYPES
+from core.constants import SUPPORTED_MIME_TYPES
 from core.schemas import AnalysisReport, FinalDecision
+from core.metrics import increase_total_output_tokens, increase_total_input_tokens
+from core.files import get_style_guides_parts, get_optimized_fallback_mime, try_decoding, add_supplemental_files
 
 
 __CHATS : Dict[str, chats.Chat] = {}
 __ENGINES : Dict[str, VertexEngine] = {}
-__STYLE_GUIDES_CACHE : List[types.Part] = []
 __CACHE : Dict[str, types.CachedContent] = {}
-
-def get_style_guides_parts() -> List[types.Part]:
-    """Get style guides as a list of Parts, using cache if available."""
-    global __STYLE_GUIDES_CACHE
-    if not __STYLE_GUIDES_CACHE:
-        LOG.info("Loading style guides into the prompt")
-        for style_guide in STYLE_GUIDES_DEFAULT:
-            with open(style_guide, "rb") as f:
-                __STYLE_GUIDES_CACHE.append(types.Part.from_bytes(
-                    data=f.read(),
-                    mime_type=get_optimized_fallback_mime(str(style_guide))
-                ))
-    return __STYLE_GUIDES_CACHE
-
-def get_optimized_fallback_mime(file_path: str) -> str:
-    """
-    Determines the best supported MIME type for a given file, falling back to safe defaults
-    if the exact type is not supported by the Gemini API.
-
-    Rationale:
-    - Gemini has a specific list of supported MIME types.
-    - For unsupported media, we map to a "best-fit" supported type (e.g., any video -> video/mp4)
-      to allow the model to attempt processing.
-    - text/plain is used as the ultimate fallback for unknown or varied text formats.
-
-    :param file_path: Path to the file.
-    :return: A supported MIME type string.
-    """
-    mime, _ = mimetypes.guess_type(file_path)
-
-    if mime in SUPPORTED_MIME_TYPES:
-        return mime
-
-    # 2. Structural pattern matching for closest-category fallbacks
-    match mime.split('/') if mime else []:
-        case ['video', _]:
-            return 'video/mp4'  # Best fallback for all unsupported video
-        case ['audio', _]:
-            return 'audio/mpeg'  # Best fallback for all unsupported audio
-        case ['image', _]:
-            return 'image/jpeg'  # Best fallback for all unsupported images
-        case ['text', _]:
-            return 'text/plain'  # Catch-all for varied text (logs, csv, etc.)
-        case _:
-            return 'text/plain'  # Ultimate default for unknown binaries
-
-def add_supplemental_files(path_to_supplemental_files: Union[os.PathLike, str]) -> List[Union[os.PathLike, str]]:
-    """
-    Recursively gathers all files from the supplemental files directory.
-
-    Implementation Details:
-    - Uses os.walk to traverse the directory tree.
-    - Prunes the search tree by modifying 'dirs' in-place to skip hidden directories
-      and those listed in SKIP_DIRS (e.g., .venv, __pycache__).
-    - Ignores hidden files (starting with '.').
-
-    :param path_to_supplemental_files: Path to the directory containing supplemental materials.
-    :return: A list of full file paths.
-    """
-    supplemental_files_paths = []
-
-    for root, dirs, files in os.walk(f"{path_to_supplemental_files}"):
-        # Modifying dirs[:] in-place prunes the search tree
-        dirs[:] = [d for d in dirs if d not in SKIP_DIRS and not d.startswith('.') and not d.startswith("_")]
-
-        for file in files:
-            if not file.startswith("."):
-                supplemental_files_paths.append(os.path.join(root, file))
-
-    return supplemental_files_paths
 
 def create_chat(pydantic_model: Type[pydantic.BaseModel], system_instructions: str, model_id: str = 'gemini-2.5-flash',
                 search_included : bool = False, thinking_included : bool = False,
@@ -155,6 +85,21 @@ def create_chat(pydantic_model: Type[pydantic.BaseModel], system_instructions: s
     __CHATS[pydantic_model.__name__] = structured_engine.get_chat_session()
 
 
+def send_message_with_token_counting(chat: chats.Chat, message: Union[list[types.PartUnionDict], types.PartUnionDict],
+                                     config: Optional[types.GenerateContentConfigOrDict] = None) -> types.GenerateContentResponse:
+
+    response = chat.send_message(message=message, config=config)
+    # add output tokens to the count
+    additional_output_tokens = response.usage_metadata.candidates_token_count
+    increase_total_output_tokens(additional_tokens=additional_output_tokens)
+
+    #add input tokens to the count
+    additional_input_tokens = response.usage_metadata.prompt_token_count
+    increase_total_input_tokens(additional_tokens=additional_input_tokens)
+
+    return response
+
+
 def send_message_with_splitting(chat: chats.Chat, engine: VertexEngine, prompt_parts: List[types.Part]) -> Optional[types.GenerateContentResponse]:
     """
     Sends a message to the model, splitting it into parts if it exceeds the token limit.
@@ -176,7 +121,7 @@ def send_message_with_splitting(chat: chats.Chat, engine: VertexEngine, prompt_p
         for i, chunk in enumerate(chunks):
             LOG.info(f"Sending part {i+1}/{len(chunks)}")
             # We use the full config (including schema) for each part
-            response = chat.send_message(chunk)
+            response = send_message_with_token_counting(chat=chat, message=chunk)
             LOG.debug(f"Responded with: {response.parsed}")
             responses.append(response)
 
@@ -192,9 +137,9 @@ def send_message_with_splitting(chat: chats.Chat, engine: VertexEngine, prompt_p
             {chr(10).join([response.parsed for response in responses])}
             """
 
-        return chat.send_message(types.Part.from_text(text=final_merge_prompt))
+        return send_message_with_token_counting(chat=chat, message=types.Part.from_text(text=final_merge_prompt))
     else:
-        return chat.send_message(prompt_parts)
+        return send_message_with_token_counting(chat=chat, message=prompt_parts)
 
 
 def ask_agent(pydantic_model: Type[pydantic.BaseModel], path_to_sub_dir: str) -> types.GenerateContentResponse:
@@ -229,15 +174,26 @@ def ask_agent(pydantic_model: Type[pydantic.BaseModel], path_to_sub_dir: str) ->
         prompt_parts.append(types.Part.from_text(text="Here are the supplemental files for the paper"))
         supplemental_files = add_supplemental_files(supp_path)
         for s_file in supplemental_files:
+            s_file_mime = get_optimized_fallback_mime(s_file)
+            prompt_parts.append(types.Part.from_text(text=f"The file {s_file}:"))
+
             with open(s_file, "rb") as f:
                 f_read = f.read()
                 if len(f_read) <= 0:
                     continue
-                s_file_mime = get_optimized_fallback_mime(s_file)
-                prompt_parts.append(types.Part.from_bytes(
-                    data=f_read,
-                    mime_type=s_file_mime
-                ))
+
+                if not s_file_mime:
+                    file_part = try_decoding(binary_data=f_read)
+                    if not file_part:
+                        LOG.warn(f"The file '{s_file}' couldn't be uploaded due to unsupported mime_type, but the notice was added. ")
+                        continue
+
+                    prompt_parts.append(file_part)
+                else:
+                    prompt_parts.append(types.Part.from_bytes(
+                        data=f_read,
+                        mime_type=s_file_mime
+                    ))
 
     return send_message_with_splitting(agent_chat, engine, prompt_parts)
 
@@ -262,8 +218,6 @@ def ask_final(analysis_report: AnalysisReport) -> types.GenerateContentResponse:
                 text=f"Here is the result of {key}:\n{val}\n"
             ))
 
-    # 3. Native chat.send_message
-    # This automatically adds the prompt and model response to the session history
     return send_message_with_splitting(final_agent_chat, engine, prompt_parts)
 
 
