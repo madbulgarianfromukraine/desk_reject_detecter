@@ -162,7 +162,8 @@ class DeskRejectionCLI:
 
 
         else:
-            for diry in subdirs:
+            for ind,diry in enumerate(subdirs):
+                LOG.info(f"Evaluating submission number {ind+1}")
                 try:
                     evaluation_paper_result = desk_rejection_system(diry)
                     eval_results[diry] = evaluation_paper_result
