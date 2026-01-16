@@ -109,7 +109,7 @@ def ddr(path_sub_dir: Union[os.PathLike, str], think: bool = False, search: bool
         if result is None:
             LOG.error(f"Agent {key} failed to provide a result after {MAX_ITERATIONS} iterations.")
             # In a real system, you might want to raise an error or provide a default fail-safe result
-            raise RuntimeError(f"Agent {key} failed to provide a result.")
+            return None
 
     analysis_report = AnalysisReport(
         safety_check=agent_results["safety_check"],
