@@ -88,7 +88,7 @@ def process_single_submission(client: openreview.api.OpenReviewClient, item: Dic
         else:
             # The latest edit ID is what we use as the 'id' parameter in get_pdf/get_attachment
             # when is_reference is True.
-            material_id = note_edits[0].id
+            material_id = note_edits[-1].id
             print(f"Submission_id is {submission.id} is changed for {material_id}")
 
     title = get_note_value(submission, 'title')
