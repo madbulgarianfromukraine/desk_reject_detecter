@@ -22,7 +22,7 @@ import concurrent.futures
 MODEL_ID = "gemini-2.5-flash"
 
 
-def ddr(path_sub_dir: Union[os.PathLike, str], think: bool = False, search: bool = False, iterations: int = 3, ttl_seconds: str = "300s") -> FinalDecision:
+def ddr(path_sub_dir: Union[os.PathLike, str], think: bool = False, search: bool = False, iterations: int = 3, ttl_seconds: str = "300s") -> Optional[SubmissionMetrics]:
     """
     Main Orchestrator for the ddr system.
 
