@@ -92,22 +92,8 @@ def evaluate_submission_answers_only(evaluation_results: Dict[str, SubmissionMet
     print(f"F1 Score: {f1:.2f}")
 
 
-def calculate_similarity(text1: str, text2: str) -> float:
-    """
-    Calculates the cosine similarity between two strings using TF-IDF vectorization.
-    """
-    if not text1 or not text2:
-        return 1.0 if not text1 and not text2 else 0.0
-    
-    try:
-        vectorizer = TfidfVectorizer(token_pattern=r"(?u)\b\w+\b")
-        tfidf = vectorizer.fit_transform([text1, text2])
-        return float(cosine_similarity(tfidf[0:1], tfidf[1:2])[0][0])
-    except Exception:
-        return 0.0
-
-
-def evaluate_submission_full(evaluation_results: Dict[str, SubmissionMetrics], system_used: str = 'ddr') -> None:
+def evaluate_submission_full(evaluation_results: Dict[str, SubmissionMetrics], system_used: str = 'ddr',
+                             skip: int = 0) -> None:
     """
     Performs a deep evaluation of reasoning and evidence snippets.
     
@@ -115,6 +101,8 @@ def evaluate_submission_full(evaluation_results: Dict[str, SubmissionMetrics], s
     score = (y_true_status == y_pred_status) * (y_true_category in y_pred_categories) * similarity(y_true_comment, y_pred_snippet)
     
     :param evaluation_results: A dictionary mapping directory names to FinalDecision objects.
+    :param system_used: to be able to create an identifiable csv file
+    :param skip: identifies whether to append or to write new csv file
     """
     # Load Ground Truth
     submissions_df = pd.read_csv("data/iclr/data/submissions.csv")
@@ -200,7 +188,9 @@ def evaluate_submission_full(evaluation_results: Dict[str, SubmissionMetrics], s
         LOG.debug(f"Full Evaluation Score: {final_score:.4f}")
 
         filename_suffix= re.sub(r'[^a-zA-Z0-9]', '_', system_used)
-        evaluation_results_df.to_csv(path_or_buf=f"{__EVALUATION_RESULT_CSV}_{filename_suffix}.csv")
+        evaluation_results_df.to_csv(path_or_buf=f"{__EVALUATION_RESULT_CSV}_{filename_suffix}.csv", index=False,
+                                     mode = "w" if not skip else "a",
+                                     header= not skip )
         LOG.debug(f"Saved evaluation results to {__EVALUATION_RESULT_CSV}_{filename_suffix}.csv")
 
     else:
