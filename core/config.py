@@ -200,3 +200,27 @@ class VertexEngine:
             config=self.config,
             history=history or []
         )
+
+    def get_semantic_similarity(self, text_1, text_2):
+
+        # 1. Generate embeddings for both texts
+        # We use 'TASK_TYPE_SIMILARITY' to optimize for this specific use case
+        res_1 = self.client.models.embed_content(
+            model='text-embedding-004',
+            contents=text_1,
+            config=types.EmbedContentConfig(task_type='RETRIEVAL_DOCUMENT')
+        )
+
+        res_2 = self.client.models.embed_content(
+            model='text-embedding-004',
+            contents=text_2,
+            config=types.EmbedContentConfig(task_type='RETRIEVAL_DOCUMENT')
+        )
+
+        vec1 = np.array(res_1.embeddings[0].values)
+        vec2 = np.array(res_2.embeddings[0].values)
+
+        # 2. Calculate Cosine Similarity
+        # (dot product / (norm1 * norm2))
+        score = np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2))
+        return score

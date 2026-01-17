@@ -10,6 +10,7 @@ from sklearn.metrics import precision_score, recall_score, f1_score
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
+from core.config import VertexEngine
 from core.schemas import FinalDecision
 from core.log import LOG
 
@@ -151,36 +152,38 @@ def evaluate_submission_full(evaluation_results: Dict[str, SubmissionMetrics], s
         y_true_category = row["category"] if pd.notna(row["category"]) and row["category"] != "" else "None"
         y_true_comment = row["desk_reject_comments"] if pd.notna(row["desk_reject_comments"]) else ""
 
-        # 1. Status Match
-        status_match = 1 if y_true_status == decision.desk_reject_decision else 0
-        
-        # 2. Category Match
-        category_match = 1 if y_true_category in decision.categories else 0
-        
-        # 3. Evidence Similarity
-        similarity_score = 0.0
-        if y_true_status == "YES":
-            if status_match and category_match:
-                attr_name = CATEGORY_TO_ATTR.get(y_true_category)
-                if attr_name and hasattr(decision.analysis, attr_name):
-                    check_result = getattr(decision.analysis, attr_name)
-                    y_pred_snippet = check_result.evidence_snippet
-                    similarity_score = calculate_similarity(y_true_comment, y_pred_snippet)
+            # 1. Status Match
+            status_match = 1 if y_true_status == decision.desk_reject_decision else 0
+
+            # 2. Category Match
+            category_match = 1 if y_true_category in decision.categories else 0
+
+            # 3. Evidence Similarity
+            similarity_score = 0.0
+            if y_true_status == "YES":
+                if status_match and category_match:
+                    attr_name = CATEGORY_TO_ATTR.get(y_true_category)
+                    if attr_name and hasattr(decision.analysis, attr_name):
+                        check_result = getattr(decision.analysis, attr_name)
+                        y_pred_snippet = check_result.evidence_snippet
+
+                        engine = VertexEngine()
+                        similarity_score = engine.get_semantic_similarity(text_1=y_true_comment, text_2=y_pred_snippet)
+                    else:
+                        similarity_score = 0.0
                 else:
                     similarity_score = 0.0
-            else:
-                similarity_score = 0.0
-        else: # y_true_status == "NO"
-            if status_match:
-                # If correctly not desk rejected, we expect "None" category and empty comment
-                if "None" in decision.categories:
-                    category_match = 1
-                    similarity_score = 1.0
+            else: # y_true_status == "NO"
+                if status_match:
+                    # If correctly not desk rejected, we expect "None" category and empty comment
+                    if "None" in decision.categories:
+                        category_match = 1
+                        similarity_score = 1.0
+                    else:
+                        category_match = 0
+                        similarity_score = 0.0
                 else:
-                    category_match = 0
                     similarity_score = 0.0
-            else:
-                similarity_score = 0.0
 
         score = status_match * category_match * similarity_score
         evaluation_results_df.loc[evaluation_results_df['directory_name'] == directory_name, 'category_match'] = category_match
