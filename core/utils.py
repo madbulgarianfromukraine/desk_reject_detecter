@@ -14,6 +14,10 @@ from core.files import get_style_guides_parts, get_optimized_fallback_mime, try_
 __CHATS : Dict[str, chats.Chat] = {}
 __ENGINES : Dict[str, VertexEngine] = {}
 __CACHE : Dict[str, types.CachedContent] = {}
+__CHUNKS : Dict[Any, List[List[types.Part]]] = {}
+
+__API_LOCK: threading.Semaphore = threading.Semaphore(5)
+__CHUNKS_LOCK: threading.Lock = threading.Lock()
 
 def create_chat(pydantic_model: Type[pydantic.BaseModel], system_instructions: str, model_id: str = 'gemini-2.5-flash',
                 search_included : bool = False, thinking_included : bool = False,
@@ -115,7 +119,14 @@ def send_message_with_splitting(chat: chats.Chat, engine: VertexEngine, prompt_p
 
     if total_tokens > limit:
         LOG.info(f"Prompt tokens ({total_tokens}) exceed limit ({limit}). Splitting into parts.")
-        chunks = engine.split_contents(prompt_parts, limit)
+        global __CHUNKS
+        with __CHUNKS_LOCK:
+            chunks = __CHUNKS.get(id(prompt_parts),None)
+        if not chunks:
+            chunks = engine.cutting_contents(prompt_parts, limit)
+            __CHUNKS[id(prompt_parts)] = chunks
+        else:
+            LOG.debug("Chunks were already split, re-using the split")
 
         responses = []
         for i, chunk in enumerate(chunks):
