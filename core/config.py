@@ -1,7 +1,8 @@
 from google import genai
 from google.genai import types
 from pydantic import BaseModel
-from typing import Type, Optional, List
+import numpy as np
+from typing import Type, Optional, List, Dict
 from core.log import LOG
 
 # 1. The Singleton Client
@@ -127,15 +128,8 @@ class VertexEngine:
         """
         Returns the input token limit for the current model dynamically via the API.
         """
-        try:
-            # Assuming self.client is your initialized genai.Client
-            model_info = self.client.models.get(model=f'{self.model_id}')
 
-            # input_token_limit is the attribute that stores the context window size
-            return model_info.input_token_limit or self.__get_model_limit_local(model_id=self.model_id)
-        except Exception as e:
-            LOG.error(f"Error fetching model limits: {e}. Using conservative default.")
-            return 32000
+        return self.__get_model_limit_local(model_id=self.model_id)
 
     def __get_model_limit_local(self, model_id: str = "gemini-2.5-flash"):
         model_id_parts = model_id.split("-", maxsplit=2)[1:]
@@ -146,8 +140,7 @@ class VertexEngine:
                 return 131_072
             elif len(model_id_parts) >= 20:
                 return 8_192
-            else:
-                return 1_048_576
+        return 1_048_576
 
     def generate(self, contents: List[types.Part]):
         """
