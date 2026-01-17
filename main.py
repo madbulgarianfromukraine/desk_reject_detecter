@@ -95,10 +95,9 @@ class DeskRejectionCLI:
             LOG.error(f"Pipeline failed: {e}")
             sys.exit(1)
 
-    def evaluate_desk_rejection(self, directory: str,
-                                system_used: str = 'ddr',
-                                parallel: bool = False,
-                                answers_only: bool = False, limit: int = None) -> None:
+    def evaluate_desk_rejection(self, directory: str, system_used: str = 'ddr',
+                                parallel: bool = False, answers_only: bool = False, limit: int = None,
+                                skip_first: int = 0) -> None:
         """
         Runs an evaluation of all submissions in the directory and produces a report without a binding decision.
         Usage: python cli.py evaluate_desk_rejection ./my_paper_folder --limit 5
@@ -173,7 +172,7 @@ class DeskRejectionCLI:
 
         if answers_only:
             return evaluate_submission_answers_only(evaluation_results=eval_results)
-        return evaluate_submission_full(evaluation_results=eval_results, system_used=system_used)
+        return evaluate_submission_full(evaluation_results=eval_results, system_used=system_used, skip=skip_first)
 
 
 
