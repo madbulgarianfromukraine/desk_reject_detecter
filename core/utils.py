@@ -9,7 +9,7 @@ from core.constants import SUPPORTED_MIME_TYPES
 from core.schemas import AnalysisReport, FinalDecision
 from core.metrics import increase_total_output_tokens, increase_total_input_tokens
 from core.files import get_style_guides_parts, get_optimized_fallback_mime, try_decoding, add_supplemental_files
-
+from core.backoff import get_waiting_time
 
 __CHATS : Dict[str, chats.Chat] = {}
 __ENGINES : Dict[str, VertexEngine] = {}
@@ -92,7 +92,9 @@ def create_chat(pydantic_model: Type[pydantic.BaseModel], system_instructions: s
 def send_message_with_token_counting(chat: chats.Chat, message: Union[list[types.PartUnionDict], types.PartUnionDict],
                                      config: Optional[types.GenerateContentConfigOrDict] = None) -> types.GenerateContentResponse:
 
-    response = chat.send_message(message=message, config=config)
+    with __API_LOCK:
+        response = chat.send_message(message=message, config=config)
+        time.sleep(get_waiting_time())
     # add output tokens to the count
     additional_output_tokens = response.usage_metadata.candidates_token_count
     increase_total_output_tokens(additional_tokens=additional_output_tokens)
