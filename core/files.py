@@ -1,4 +1,4 @@
-.import mimetypes
+import mimetypes
 import os
 from typing import List, Union, Optional
 from google.genai import types
