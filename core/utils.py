@@ -1,11 +1,12 @@
-from typing import List, Union, Dict, Type, Optional
+import time
+from typing import List, Union, Dict, Type, Optional, Any
 import pydantic
+import threading
 from google.genai import types, chats
 import os
 
 from core.config import VertexEngine  # Import the configured LLM
 from core.log import LOG
-from core.constants import SUPPORTED_MIME_TYPES
 from core.schemas import AnalysisReport, FinalDecision
 from core.metrics import increase_total_output_tokens, increase_total_input_tokens
 from core.files import get_style_guides_parts, get_optimized_fallback_mime, try_decoding, add_supplemental_files
