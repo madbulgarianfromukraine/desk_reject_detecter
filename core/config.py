@@ -167,7 +167,7 @@ class VertexEngine:
             contents=contents
         ).total_tokens
 
-    def split_contents(self, contents: List[types.Part], limit: int) -> List[List[types.Part]]:
+    def cutting_contents(self, contents: List[types.Part], limit: int) -> List[List[types.Part]]:
         """
         Splits a list of Parts into multiple chunks, each within the token limit.
 
@@ -175,25 +175,18 @@ class VertexEngine:
         :param limit: The maximum number of tokens allowed per chunk.
         :return: A list of chunks (each chunk is a list of Parts).
         """
-        chunks = []
         current_chunk = []
         current_tokens = 0
 
         for part in contents:
             part_tokens = self.count_tokens([part])
             if current_tokens + part_tokens > limit:
-                if current_chunk:
-                    chunks.append(current_chunk)
-                current_chunk = [part]
-                current_tokens = part_tokens
-            else:
-                current_chunk.append(part)
-                current_tokens += part_tokens
+                return current_chunk
 
-        if current_chunk:
-            chunks.append(current_chunk)
+            current_chunk.append(part)
+            current_tokens += part_tokens
 
-        return chunks
+        return current_chunk
 
     def get_chat_session(self, history: Optional[List[types.Content]] = None):
         """
