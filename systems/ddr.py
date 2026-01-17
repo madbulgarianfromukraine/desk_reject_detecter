@@ -10,6 +10,7 @@ from core.schemas import (
 from core.logprobs import combine_confidences
 from core.log import LOG
 from core.metrics import SubmissionMetrics, get_total_input_tokens, get_total_output_tokens
+from core.backoff import double_waiting_time, reset_waiting_time
 
 # Import Agents
 from agents import final_decision_agent
@@ -100,8 +101,12 @@ def ddr(path_sub_dir: Union[os.PathLike, str], think: bool = False, search: bool
                         LOG.debug(f"{agent_name} updated with confidence {parsed_response.confidence_score}.")
                     else:
                         LOG.debug(f"{agent_name} current confidence ({parsed_response.confidence_score}) is not higher than existing ({agent_results[agent_name].confidence_score}). Keeping existing.")
+
+                    reset_waiting_time()
                 except Exception as exc:
                     LOG.error(f"{agent_name} generated an exception: {exc}")
+                    if "429 RESOURCE EXHAUSTED" in exc.__str__():
+                        double_waiting_time()
                     agent_results[agent_name] = None
 
     # Ensure all results are present, even if some failed (fallback or re-raise)
