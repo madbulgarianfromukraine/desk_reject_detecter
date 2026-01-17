@@ -106,9 +106,15 @@ def evaluate_submission_full(evaluation_results: Dict[str, SubmissionMetrics], s
     """
     # Load Ground Truth
     submissions_df = pd.read_csv("data/iclr/data/submissions.csv")
-    evaluation_results_df = submissions_df
 
-    evaluation_results_df = evaluation_results_df[['directory_name']]
+    evaluation_results_df = pd.DataFrame({'directory_name' : list(evaluation_results.keys())})
+    evaluation_results_df.set_index('directory_name', inplace=True)
+
+    evaluation_results_df.loc[:, 'category_match'] = 0.0
+    evaluation_results_df.loc[:, 'status_match'] = 0.0
+    evaluation_results_df.loc[:, 'similarity_score'] = 0.0
+    evaluation_results_df.loc[:, 'total_input_tokens'] = 0
+    evaluation_results_df.loc[:, 'total_output_tokens'] = 0
 
     # Mapping CSV status to model decision
     STATUS_MAP = {
@@ -130,15 +136,19 @@ def evaluate_submission_full(evaluation_results: Dict[str, SubmissionMetrics], s
 
     for directory_name, metrics in evaluation_results.items():
         # Get ground truth
-        decision = metrics.final_decision
+        if metrics:
+            decision = metrics.final_decision
+        else:
+            decision = None
+
         row = submissions_df[submissions_df['directory_name'] == directory_name]
         if row.empty:
             continue
         row = row.iloc[0]
-
-        y_true_status = STATUS_MAP.get(row["status"], "NO")
-        y_true_category = row["category"] if pd.notna(row["category"]) and row["category"] != "" else "None"
-        y_true_comment = row["desk_reject_comments"] if pd.notna(row["desk_reject_comments"]) else ""
+        if decision:
+            y_true_status = STATUS_MAP.get(row["status"], "NO")
+            y_true_category = row["category"] if pd.notna(row["category"]) and row["category"] != "" else "None"
+            y_true_comment = row["desk_reject_comments"] if pd.notna(row["desk_reject_comments"]) else ""
 
             # 1. Status Match
             status_match = 1 if y_true_status == decision.desk_reject_decision else 0
@@ -173,22 +183,22 @@ def evaluate_submission_full(evaluation_results: Dict[str, SubmissionMetrics], s
                 else:
                     similarity_score = 0.0
 
-        score = status_match * category_match * similarity_score
-        evaluation_results_df.loc[evaluation_results_df['directory_name'] == directory_name, 'category_match'] = category_match
-        evaluation_results_df.loc[evaluation_results_df['directory_name'] == directory_name, 'status_match'] = status_match
-        evaluation_results_df.loc[evaluation_results_df['directory_name'] == directory_name, 'similarity_score'] = similarity_score
-        evaluation_results_df.loc[evaluation_results_df['directory_name'] == directory_name, 'total_input_tokens'] = metrics.total_input_token_count
-        evaluation_results_df.loc[evaluation_results_df['directory_name'] == directory_name, 'total_output_tokens'] = metrics.total_output_token_count
+            score = status_match * category_match * similarity_score
+            evaluation_results_df.loc[directory_name, 'category_match'] = category_match
+            evaluation_results_df.loc[directory_name, 'status_match'] = status_match
+            evaluation_results_df.loc[directory_name, 'similarity_score'] = similarity_score
+            evaluation_results_df.loc[directory_name, 'total_input_tokens'] = metrics.total_input_token_count
+            evaluation_results_df.loc[directory_name, 'total_output_tokens']  = metrics.total_output_token_count
 
 
-        total_scores.append(score)
+            total_scores.append(score)
 
     if total_scores:
         final_score = np.mean(total_scores)
         LOG.debug(f"Full Evaluation Score: {final_score:.4f}")
 
         filename_suffix= re.sub(r'[^a-zA-Z0-9]', '_', system_used)
-        evaluation_results_df.to_csv(path_or_buf=f"{__EVALUATION_RESULT_CSV}_{filename_suffix}.csv", index=False,
+        evaluation_results_df.to_csv(path_or_buf=f"{__EVALUATION_RESULT_CSV}_{filename_suffix}.csv", index=True,
                                      mode = "w" if not skip else "a",
                                      header= not skip )
         LOG.debug(f"Saved evaluation results to {__EVALUATION_RESULT_CSV}_{filename_suffix}.csv")
