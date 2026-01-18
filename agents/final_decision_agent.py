@@ -53,5 +53,5 @@ def create_chat_settings(model_id: str = 'gemini-2.5-flash', search_included: bo
     return create_chat(pydantic_model=FinalDecision, system_instructions=SYSTEM_PROMPT, model_id=model_id,
                        search_included=search_included, thinking_included=thinking_included)
 
-def ask_final_decision_agent(analysis_report: AnalysisReport) -> types.GenerateContentResponse:
-    return ask_final(analysis_report=analysis_report)
+def ask_final_decision_agent(analysis_report: AnalysisReport, submission_id: str = None) -> types.GenerateContentResponse:
+    return ask_final(analysis_report=analysis_report, submission_id=submission_id)
