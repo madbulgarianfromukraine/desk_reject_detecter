@@ -11,7 +11,7 @@ from core.logprobs import combine_confidences
 from core.log import LOG
 from core.metrics import SubmissionMetrics, get_total_input_tokens, get_total_output_tokens
 from core.backoff import double_waiting_time, reset_waiting_time
-
+from core.utils import cleanup_submission_chunks
 # Import Agents
 from agents import final_decision_agent
 from agents.utils import AGENT_MAPPING, create_chats
@@ -125,8 +125,10 @@ def ddr(path_sub_dir: Union[os.PathLike, str], think: bool = False, search: bool
         scope_check=agent_results["scope_check"]
     )
 
-    final_decision_response = final_decision_agent.ask_final_decision_agent(analysis_report=analysis_report)
+    final_decision_response = final_decision_agent.ask_final_decision_agent(analysis_report=analysis_report, submission_id=str(path_sub_dir))
     final_decision_response.parsed.confidence_score = combine_confidences(llm_response=final_decision_response, pydantic_scheme=FinalDecision, final_agent=True)
+
+    cleanup_submission_chunks(str(path_sub_dir))
 
     end_time = time.time()
     return SubmissionMetrics(final_decision=final_decision_response.parsed, total_input_token_count=get_total_input_tokens(),

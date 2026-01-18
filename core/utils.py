@@ -15,7 +15,7 @@ from core.backoff import get_waiting_time
 __CHATS : Dict[str, chats.Chat] = {}
 __ENGINES : Dict[str, VertexEngine] = {}
 __CACHE : Dict[str, types.CachedContent] = {}
-__CHUNKS : Dict[Any, List[List[types.Part]]] = {}
+__CHUNKS : Dict[str, List[List[types.Part]]] = {}  # Key: submission_id, Value: cached chunks
 
 __API_LOCK: threading.Semaphore = threading.Semaphore(5)
 __CHUNKS_LOCK: threading.Lock = threading.Lock()
@@ -107,7 +107,7 @@ def send_message_with_token_counting(chat: chats.Chat, message: Union[list[types
     return response
 
 
-def send_message_with_splitting(chat: chats.Chat, engine: VertexEngine, prompt_parts: List[types.Part]) -> Optional[types.GenerateContentResponse]:
+def send_message_with_cutting(chat: chats.Chat, engine: VertexEngine, prompt_parts: List[types.Part], submission_id: str = None) -> Optional[types.GenerateContentResponse]:
     """
     Sends a message to the model, splitting it into parts if it exceeds the token limit.
     Each part generates a structured response, which are then merged.
@@ -115,43 +115,28 @@ def send_message_with_splitting(chat: chats.Chat, engine: VertexEngine, prompt_p
     :param chat: The chat session to use.
     :param engine: The engine containing model and configuration.
     :param prompt_parts: The list of Parts to send.
+    :param submission_id: Unique identifier for the submission (e.g., directory path). Used for caching chunks.
     :return: The merged response from the model.
     """
     limit = engine.get_model_limit()
     total_tokens = engine.count_tokens(prompt_parts)
 
     if total_tokens > limit:
-        LOG.info(f"Prompt tokens ({total_tokens}) exceed limit ({limit}). Splitting into parts.")
+        LOG.info(f"Prompt tokens ({total_tokens}) exceed limit ({limit}). Cutting off the excessive input.")
         global __CHUNKS
         with __CHUNKS_LOCK:
-            chunks = __CHUNKS.get(id(prompt_parts),None)
-        if not chunks:
-            chunks = engine.cutting_contents(prompt_parts, limit)
-            __CHUNKS[id(prompt_parts)] = chunks
-        else:
-            LOG.debug("Chunks were already split, re-using the split")
+            # Use submission_id as cache key if provided, otherwise skip caching
+            chunks = __CHUNKS.get(submission_id, None)
+            
+            if not chunks:
+                chunks = engine.cutting_contents(prompt_parts, limit)
+                if submission_id:
+                    __CHUNKS[submission_id] = chunks
+                    LOG.debug(f"Cached chunks for submission {submission_id}")
+            else:
+                LOG.debug(f"Reusing cached chunks for submission {submission_id}")
 
-        responses = []
-        for i, chunk in enumerate(chunks):
-            LOG.info(f"Sending part {i+1}/{len(chunks)}")
-            # We use the full config (including schema) for each part
-            response = send_message_with_token_counting(chat=chat, message=chunk)
-            LOG.debug(f"Responded with: {response.parsed}")
-            responses.append(response)
-
-        if len(responses) <= 1:
-            return responses[0]
-
-        final_merge_prompt = f"""
-            Below are several partial desk-reject analysis reports for the same main_paper.pdf and its supplemental files.
-            Please merge them into a single, consistent JSON report as specified to you
-            If categories conflict, prioritize 'Policy' or 'Scope' over 'Formatting'.
-
-            PARTIAL REPORTS:
-            {chr(10).join([response.parsed for response in responses])}
-            """
-
-        return send_message_with_token_counting(chat=chat, message=types.Part.from_text(text=final_merge_prompt))
+        return send_message_with_token_counting(chat=chat, message=chunks)
     else:
         return send_message_with_token_counting(chat=chat, message=prompt_parts)
 
@@ -209,9 +194,9 @@ def ask_agent(pydantic_model: Type[pydantic.BaseModel], path_to_sub_dir: str) ->
                         mime_type=s_file_mime
                     ))
 
-    return send_message_with_splitting(agent_chat, engine, prompt_parts)
+    return send_message_with_cutting(agent_chat, engine, prompt_parts, submission_id=path_to_sub_dir)
 
-def ask_final(analysis_report: AnalysisReport) -> types.GenerateContentResponse:
+def ask_final(analysis_report: AnalysisReport, submission_id: str = None) -> types.GenerateContentResponse:
     """
     Constructs a prompt from the aggregated AnalysisReport and sends it to the Final Decision Agent.
 
@@ -219,6 +204,7 @@ def ask_final(analysis_report: AnalysisReport) -> types.GenerateContentResponse:
     and presents them to the final agent to reach a terminal desk-rejection decision.
 
     :param analysis_report: The object containing results from all individual auditor agents.
+    :param submission_id: Unique identifier for the submission. Used for caching chunks.
     :return: The terminal decision response.
     """
 
@@ -232,7 +218,20 @@ def ask_final(analysis_report: AnalysisReport) -> types.GenerateContentResponse:
                 text=f"Here is the result of {key}:\n{val}\n"
             ))
 
-    return send_message_with_splitting(final_agent_chat, engine, prompt_parts)
+    return send_message_with_cutting(final_agent_chat, engine, prompt_parts, submission_id=submission_id)
+
+
+def cleanup_submission_chunks(submission_id: str) -> None:
+    """
+    Cleans up the cached chunks for a specific submission after it's been fully processed.
+    
+    :param submission_id: The submission identifier to clean up chunks for.
+    """
+    global __CHUNKS
+    with __CHUNKS_LOCK:
+        if submission_id in __CHUNKS:
+            del __CHUNKS[submission_id]
+            LOG.debug(f"Cleaned up cached chunks for submission {submission_id}")
 
 
 def cleanup_caches() -> None:
