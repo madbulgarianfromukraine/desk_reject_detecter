@@ -40,7 +40,7 @@ class VertexEngine:
         # Each engine gets its own independent config object.
         self.model_id = model_id
         self.config = types.GenerateContentConfig(
-            temperature=0.0
+            temperature=0.2
         )
 
     def set_temperature(self, temp: float):
@@ -166,27 +166,6 @@ class VertexEngine:
             model=self.model_id,
             contents=contents
         ).total_tokens
-
-    def cutting_contents(self, contents: List[types.Part], limit: int) -> List[List[types.Part]]:
-        """
-        Splits a list of Parts into multiple chunks, each within the token limit.
-
-        :param contents: The list of Parts to split.
-        :param limit: The maximum number of tokens allowed per chunk.
-        :return: A list of chunks (each chunk is a list of Parts).
-        """
-        current_chunk = []
-        current_tokens = 0
-
-        for part in contents:
-            part_tokens = self.count_tokens([part])
-            if current_tokens + part_tokens > limit:
-                return current_chunk
-
-            current_chunk.append(part)
-            current_tokens += part_tokens
-
-        return current_chunk
 
     def get_chat_session(self, history: Optional[List[types.Content]] = None):
         """
