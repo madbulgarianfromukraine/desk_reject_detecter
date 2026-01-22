@@ -2,9 +2,9 @@ import threading
 
 from core.log import LOG
 # CONSTANTS NEEDED FOR EXPONENTIAL BACKOFF
-__WAITING_DEFAULT_SECONDS : int = 12
+__WAITING_DEFAULT_SECONDS : int = 60
 __WAITING_TIME_SECONDS: int = __WAITING_DEFAULT_SECONDS
-__MAX_WAITING_SECONDS: int = 96  # Prevent waiting forever
+__MAX_WAITING_SECONDS: int = 120  # Prevent waiting forever
 __WAITING_TIME_LOCK: threading.Lock = threading.Lock()
 
 def get_waiting_time() -> int:
