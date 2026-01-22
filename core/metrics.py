@@ -7,8 +7,6 @@ import threading
 import pandas as pd
 import numpy as np
 from sklearn.metrics import precision_score, recall_score, f1_score
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
 
 from core.config import VertexEngine
 from core.schemas import FinalDecision
@@ -26,13 +24,157 @@ __OUTPUT_TOKENS_LOCK : threading.Lock = threading.Lock()
 @dataclass
 class SubmissionMetrics:
 
-    def __init__(self, final_decision: FinalDecision, total_input_token_count: int,
-                 total_output_token_count: int,
-                 total_elapsed_time: float):
+    def __init__(self, final_decision: FinalDecision = None, total_input_token_count: int = 0,
+                 total_output_token_count: int = 0,
+                 total_elapsed_time: float = 0.0,
+                 submission_id: str = None,
+                 system_name: str = None,
+                 category: str = None,
+                 sub_category: str = None,
+                 reasoning: str = None,
+                 confidence_score: float = None):
         self.final_decision = final_decision
         self.total_input_token_count = total_input_token_count
         self.total_output_token_count = total_output_token_count
         self.total_elapsed_time = total_elapsed_time
+        # Additional fields for SASP/SACP compatibility
+        self.submission_id = submission_id
+        self.system_name = system_name
+        self.category = category
+        self.sub_category = sub_category
+        self.reasoning = reasoning
+        self.confidence_score = confidence_score
+    
+    def to_final_decision(self, status: str) -> FinalDecision:
+        """
+        Converts SASP/SACP metrics to FinalDecision format for evaluation compatibility.
+        
+        :param status: The status from SASP/SACP (ACCEPT/REJECT/UNCERTAIN)
+        :return: FinalDecision object compatible with evaluate_submission_full
+        """
+        from core.schemas import AnalysisReport, SafetyCheck, AnonymityCheck, FormattingCheck, PolicyCheck, VisualIntegrityCheck, ScopeCheck
+        
+        # Map SASP/SACP category to FinalDecision category
+        category_map = {
+            "Code_of_Ethics": "Code_of_Ethics",
+            "Anonymity": "Anonymity",
+            "Formatting": "Formatting",
+            "Visual_Integrity": "Visual_Integrity",
+            "Policy": "Policy",
+            "Scope": "Scope",
+            "None": "None"
+        }
+        
+        mapped_category = category_map.get(self.category, "None")
+        
+        # Create empty check templates
+        empty_check_template = {
+            "safety": SafetyCheck(violation_found=False, issue_type="None", evidence_snippet="", reasoning="", confidence_score=0.0),
+            "anonymity": AnonymityCheck(violation_found=False, issue_type="None", evidence_snippet="", reasoning="", confidence_score=0.0),
+            "visual": VisualIntegrityCheck(violation_found=False, issue_type="None", evidence_snippet="", reasoning="", confidence_score=0.0),
+            "formatting": FormattingCheck(violation_found=False, issue_type="None", evidence_snippet="", reasoning="", confidence_score=0.0),
+            "policy": PolicyCheck(violation_found=False, issue_type="None", evidence_snippet="", reasoning="", confidence_score=0.0),
+            "scope": ScopeCheck(violation_found=False, issue_type="None", evidence_snippet="", reasoning="", confidence_score=0.0),
+        }
+        
+        # Create the actual check for the identified category
+        category_to_check_map = {
+            "Code_of_Ethics": "safety",
+            "Anonymity": "anonymity",
+            "Formatting": "formatting",
+            "Visual_Integrity": "visual",
+            "Policy": "policy",
+            "Scope": "scope"
+        }
+        
+        # Build the analysis report
+        if mapped_category != "None" and mapped_category in category_to_check_map:
+            check_type = category_to_check_map[mapped_category]
+            if check_type == "safety":
+                check = SafetyCheck(violation_found=True, issue_type=self.sub_category if self.sub_category != "None" else "None", 
+                                   evidence_snippet=self.reasoning or "", reasoning=self.reasoning or "", confidence_score=self.confidence_score or 0.0)
+                analysis = AnalysisReport(
+                    safety_check=check,
+                    anonymity_check=empty_check_template["anonymity"],
+                    visual_integrity_check=empty_check_template["visual"],
+                    formatting_check=empty_check_template["formatting"],
+                    policy_check=empty_check_template["policy"],
+                    scope_check=empty_check_template["scope"]
+                )
+            elif check_type == "anonymity":
+                check = AnonymityCheck(violation_found=True, issue_type=self.sub_category if self.sub_category != "None" else "None",
+                                      evidence_snippet=self.reasoning or "", reasoning=self.reasoning or "", confidence_score=self.confidence_score or 0.0)
+                analysis = AnalysisReport(
+                    safety_check=empty_check_template["safety"],
+                    anonymity_check=check,
+                    visual_integrity_check=empty_check_template["visual"],
+                    formatting_check=empty_check_template["formatting"],
+                    policy_check=empty_check_template["policy"],
+                    scope_check=empty_check_template["scope"]
+                )
+            elif check_type == "formatting":
+                check = FormattingCheck(violation_found=True, issue_type=self.sub_category if self.sub_category != "None" else "None",
+                                       evidence_snippet=self.reasoning or "", reasoning=self.reasoning or "", confidence_score=self.confidence_score or 0.0)
+                analysis = AnalysisReport(
+                    safety_check=empty_check_template["safety"],
+                    anonymity_check=empty_check_template["anonymity"],
+                    visual_integrity_check=empty_check_template["visual"],
+                    formatting_check=check,
+                    policy_check=empty_check_template["policy"],
+                    scope_check=empty_check_template["scope"]
+                )
+            elif check_type == "visual":
+                check = VisualIntegrityCheck(violation_found=True, issue_type=self.sub_category if self.sub_category != "None" else "None",
+                                            evidence_snippet=self.reasoning or "", reasoning=self.reasoning or "", confidence_score=self.confidence_score or 0.0)
+                analysis = AnalysisReport(
+                    safety_check=empty_check_template["safety"],
+                    anonymity_check=empty_check_template["anonymity"],
+                    visual_integrity_check=check,
+                    formatting_check=empty_check_template["formatting"],
+                    policy_check=empty_check_template["policy"],
+                    scope_check=empty_check_template["scope"]
+                )
+            elif check_type == "policy":
+                check = PolicyCheck(violation_found=True, issue_type=self.sub_category if self.sub_category != "None" else "None",
+                                   evidence_snippet=self.reasoning or "", reasoning=self.reasoning or "", confidence_score=self.confidence_score or 0.0)
+                analysis = AnalysisReport(
+                    safety_check=empty_check_template["safety"],
+                    anonymity_check=empty_check_template["anonymity"],
+                    visual_integrity_check=empty_check_template["visual"],
+                    formatting_check=empty_check_template["formatting"],
+                    policy_check=check,
+                    scope_check=empty_check_template["scope"]
+                )
+            else:  # scope
+                check = ScopeCheck(violation_found=True, issue_type=self.sub_category if self.sub_category != "None" else "None",
+                                  evidence_snippet=self.reasoning or "", reasoning=self.reasoning or "", confidence_score=self.confidence_score or 0.0)
+                analysis = AnalysisReport(
+                    safety_check=empty_check_template["safety"],
+                    anonymity_check=empty_check_template["anonymity"],
+                    visual_integrity_check=empty_check_template["visual"],
+                    formatting_check=empty_check_template["formatting"],
+                    policy_check=empty_check_template["policy"],
+                    scope_check=check
+                )
+        else:
+            # No violation found
+            analysis = AnalysisReport(
+                safety_check=empty_check_template["safety"],
+                anonymity_check=empty_check_template["anonymity"],
+                visual_integrity_check=empty_check_template["visual"],
+                formatting_check=empty_check_template["formatting"],
+                policy_check=empty_check_template["policy"],
+                scope_check=empty_check_template["scope"]
+            )
+        
+        # Convert status to YES/NO
+        
+        return FinalDecision(
+            desk_reject_decision=status,
+            categories=mapped_category,
+            confidence_score=self.confidence_score or None,
+            analysis=analysis
+        )
 
 
 def increase_total_input_tokens(additional_tokens: int):
@@ -70,11 +212,22 @@ def evaluate_submission_answers_only(evaluation_results: Dict[str, SubmissionMet
     - Ground truth is expected in 'data/iclr/data/submissions.csv' with columns:
       'directory_name' and 'status' ('Desk Rejected' or 'Not Desk Rejected').
 
-    :param evaluation_results: A dictionary mapping directory names to FinalDecision objects.
+    :param evaluation_results: A dictionary mapping directory names to SubmissionMetrics objects.
     """
 
     submissions_df = pd.read_csv("data/iclr/data/submissions.csv")
-    predictions_dict = evaluation_results
+
+    # Convert SASP/SACP metrics to FinalDecision format if needed
+    predictions_dict = {}
+    for dir_name, metrics in evaluation_results.items():
+        if metrics:
+            if metrics.final_decision is None and metrics.system_name in ['SASP', 'SACP']:
+                # Convert SASP/SACP metrics
+                predictions_dict[dir_name] = metrics.to_final_decision(status="REJECT" if metrics.category != "None" else "ACCEPT")
+            else:
+                predictions_dict[dir_name] = metrics.final_decision
+        else:
+            predictions_dict[dir_name] = None
 
     submissions_df['y_pred_obj'] = submissions_df['directory_name'].map(predictions_dict)
     submissions_df = submissions_df.dropna(subset=['y_pred_obj'])
@@ -100,7 +253,7 @@ def evaluate_submission_full(evaluation_results: Dict[str, SubmissionMetrics], s
     Formula: 
     score = (y_true_status == y_pred_status) * (y_true_category in y_pred_categories) * similarity(y_true_comment, y_pred_snippet)
     
-    :param evaluation_results: A dictionary mapping directory names to FinalDecision objects.
+    :param evaluation_results: A dictionary mapping directory names to SubmissionMetrics objects.
     :param system_used: to be able to create an identifiable csv file
     :param skip: identifies whether to append or to write new csv file
     """
@@ -137,7 +290,15 @@ def evaluate_submission_full(evaluation_results: Dict[str, SubmissionMetrics], s
     for directory_name, metrics in evaluation_results.items():
         # Get ground truth
         if metrics:
-            decision = metrics.final_decision
+            # Convert SASP/SACP metrics to FinalDecision if needed
+            if metrics.final_decision is None and metrics.system_name in ['SASP', 'SACP']:
+                # This is a SASP/SACP metrics object, convert it
+                # Determine status: REJECT if a violation category found, else ACCEPT
+                status = "YES" if metrics.category != "None" else "NO"
+                decision = metrics.to_final_decision(status=status)
+                LOG.debug(f"Converted {metrics.system_name} metrics to FinalDecision for {directory_name} with status {status}")
+            else:
+                decision = metrics.final_decision
         else:
             decision = None
 
