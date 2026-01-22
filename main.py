@@ -147,7 +147,7 @@ class DeskRejectionCLI:
             subdirs = random.sample(subdirs, limit + skip_first)[skip_first:]
         
         if parallel:
-            with ThreadPoolExecutor(thread_name_prefix="Directory_Evaluation") as executor:
+            with ThreadPoolExecutor(thread_name_prefix="Directory_Evaluation", max_workers=3) as executor:
                 future_to_eval_result = {executor.submit(desk_rejection_system, diry): diry for diry in subdirs}
 
                 for future in as_completed(future_to_eval_result):
