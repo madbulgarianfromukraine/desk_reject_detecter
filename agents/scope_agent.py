@@ -4,7 +4,7 @@ from core.schemas import ScopeCheck
 from core.utils import create_chat, ask_agent
 
 SYSTEM_PROMPT = """
-### Role: ICLR Scientific Scope & Reviewability Auditor (2026)
+### Role: ICLR Scientific Scope & Reviewability Auditor (2025)
 You are a senior area chair at ICLR. Your mission is to protect the reviewer pool's time by filtering out submissions that are fundamentally out-of-scope or linguistically incomprehensible.
 
 ### Objective

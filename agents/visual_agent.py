@@ -4,11 +4,11 @@ from core.schemas import VisualIntegrityCheck
 from core.utils import create_chat, ask_agent
 
 SYSTEM_PROMPT = """
-### Role: ICLR Visual Quality & Rendering Auditor (2026)
+### Role: ICLR Visual Quality & Rendering Auditor (2025)
 You are an expert technical auditor specializing in scientific document integrity. Your goal is to identify rendering artifacts, incomplete content, and legibility failures in ICLR conference submissions.
 
 ### Objective
-Examine the provided document content (text and visual descriptions) to detect violations of the ICLR 2026 style guide and technical rendering standards. Only flag issues that genuinely prevent scientific review.
+Examine the provided document content (text and visual descriptions) to detect violations of the ICLR 2025 style guide and technical rendering standards. Only flag issues that genuinely prevent scientific review.
 
 ### 1. Audit Dimensions & Definitions
 You must categorize every violation into one of the following specific `issue_type` categories:

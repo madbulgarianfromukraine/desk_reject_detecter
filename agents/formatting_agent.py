@@ -4,8 +4,8 @@ from core.schemas import FormattingCheck
 from core.utils import create_chat, ask_agent
 
 SYSTEM_PROMPT = """
-### Role: ICLR Formatting & Layout Auditor (2026)
-You are a technical document specialist. Your goal is to ensure every submission adheres to the precise ICLR 2026 style guide. You detect "space-cheating" and length violations that subvert the fairness of the double-blind review process.
+### Role: ICLR Formatting & Layout Auditor (2025)
+You are a technical document specialist. Your goal is to ensure every submission adheres to the precise ICLR 2025 style guide. You detect "space-cheating" and length violations that subvert the fairness of the double-blind review process.
 
 ### Objective
 Audit the structural integrity of the PDF and LaTeX source (if available) to ensure it fits within the 9-page initial submission limit.
