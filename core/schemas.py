@@ -1,4 +1,4 @@
-from typing import Literal, Tuple, Any, Type, List, get_args, get_origin
+from typing import Literal, Tuple, Any, Type, List, get_args, get_origin, Optional
 from pydantic import BaseModel, Field
 
 # Base schemas for individual checks
@@ -14,7 +14,7 @@ class SafetyCheck(BaseModel):
     issue_type: Literal["Privacy", "Harm", "Misconduct", "None"] = "None"
     evidence_snippet: str = Field(description="Quote text or describe unethical image")
     reasoning: str
-    confidence_score: float = Field(ge=0.0, le=1.0)
+    confidence_score: Optional[float] = Field(default=None, ge=0.0, le=1.0)
 
 class AnonymityCheck(BaseModel):
     """
@@ -29,7 +29,7 @@ class AnonymityCheck(BaseModel):
     issue_type: Literal["Author_Names", "Visual_Anonymity", "Self-Citation", "Links", "None"] = "None"
     evidence_snippet: str
     reasoning: str
-    confidence_score: float = Field(ge=0.0, le=1.0)
+    confidence_score: Optional[float] = Field(default=None, ge=0.0, le=1.0)
 
 class VisualIntegrityCheck(BaseModel):
     """
@@ -43,7 +43,7 @@ class VisualIntegrityCheck(BaseModel):
     issue_type: Literal["Placeholder_Figures", "Unreadable_Content", "Broken_Rendering", "None"] = "None"
     evidence_snippet: str
     reasoning: str
-    confidence_score: float = Field(ge=0.0, le=1.0)
+    confidence_score: Optional[float] = Field(default=None, ge=0.0, le=1.0)
 
 class FormattingCheck(BaseModel):
     """
@@ -58,7 +58,7 @@ class FormattingCheck(BaseModel):
     issue_type: Literal["Page_Limit", "Statement_Limit", "Margins/Spacing", "Line_Numbers", "None"] = "None"
     evidence_snippet: str
     reasoning: str
-    confidence_score: float = Field(ge=0.0, le=1.0)
+    confidence_score: Optional[float] = Field(default=None, ge=0.0, le=1.0)
 
 class PolicyCheck(BaseModel):
     """
@@ -71,7 +71,7 @@ class PolicyCheck(BaseModel):
     issue_type: Literal["Placeholder_Text", "Dual_Submission", "Plagiarism", "None"] = "None"
     evidence_snippet: str
     reasoning: str
-    confidence_score: float = Field(ge=0.0, le=1.0)
+    confidence_score: Optional[float] = Field(default=None, ge=0.0, le=1.0)
 
 class ScopeCheck(BaseModel):
     """
@@ -82,6 +82,62 @@ class ScopeCheck(BaseModel):
     """
     violation_found: bool
     issue_type: Literal["Scope", "Language", "None"] = "None"
+    evidence_snippet: str
+    reasoning: str
+    confidence_score: Optional[float] = Field(default=None, ge=0.0, le=1.0)
+
+# Single Agent Single Prompt (SASP) Schema
+class SASPReport(BaseModel):
+    """
+    Single Agent Single Prompt report containing desk rejection analysis.
+    Returns a simplified single-pass evaluation of the paper.
+    """
+    violation_found: Literal["YES", "NO"]
+    issue_type: Literal["Code_of_Ethics", "Anonymity", "Formatting", "Visual_Integrity", "Policy", "Scope", "None"]
+    sub_category: Literal[
+        # Code_of_Ethics sub-categories
+        "Privacy", "Harm", "Misconduct",
+        # Anonymity sub-categories
+        "Author_Names", "Visual_Anonymity", "Self-Citation", "Links",
+        # Formatting sub-categories
+        "Page_Limit", "Statement_Limit", "Margins/Spacing", "Line_Numbers",
+        # Visual_Integrity sub-categories
+        "Placeholder_Figures", "Unreadable_Content", "Broken_Rendering",
+        # Policy sub-categories
+        "Placeholder_Text", "Dual_Submission", "Plagiarism",
+        # Scope sub-categories
+        "Scope", "Language",
+        # Default
+        "None"
+    ] = "None"
+    evidence_snippet: str
+    reasoning: str
+    confidence_score: float = Field(ge=0.0, le=1.0)
+
+# Single Agent Complex Prompt (SACP) Schema
+class SACPReport(BaseModel):
+    """
+    Single Agent Single Prompt report containing desk rejection analysis.
+    Returns a simplified single-pass evaluation of the paper.
+    """
+    violation_found: Literal["YES", "NO"]
+    issue_type: Literal["Code_of_Ethics", "Anonymity", "Formatting", "Visual_Integrity", "Policy", "Scope", "None"]
+    sub_category: Literal[
+        # Code_of_Ethics sub-categories
+        "Privacy", "Harm", "Misconduct",
+        # Anonymity sub-categories
+        "Author_Names", "Visual_Anonymity", "Self-Citation", "Links",
+        # Formatting sub-categories
+        "Page_Limit", "Statement_Limit", "Margins/Spacing", "Line_Numbers",
+        # Visual_Integrity sub-categories
+        "Placeholder_Figures", "Unreadable_Content", "Broken_Rendering",
+        # Policy sub-categories
+        "Placeholder_Text", "Dual_Submission", "Plagiarism",
+        # Scope sub-categories
+        "Scope", "Language",
+        # Default
+        "None"
+    ] = "None"
     evidence_snippet: str
     reasoning: str
     confidence_score: float = Field(ge=0.0, le=1.0)
@@ -103,7 +159,7 @@ class FinalDecision(BaseModel):
     Terminal decision schema produced by the Program Chair (Final Agent).
     """
     desk_reject_decision: Literal["YES", "NO"]
-    categories: List[Literal["Code_of_Ethics", "Anonymity", "Formatting", "Visual_Integrity", "Policy", "Scope", "None"]]
+    categories: Literal["Code_of_Ethics", "Anonymity", "Formatting", "Visual_Integrity", "Policy", "Scope", "None"]
     confidence_score: float = Field(ge=0.0, le=1.0)
     analysis: AnalysisReport
 
