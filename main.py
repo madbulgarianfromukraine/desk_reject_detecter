@@ -144,7 +144,7 @@ class DeskRejectionCLI:
 
         if limit < len(subdirs):
             random.seed(42)
-            subdirs = random.sample(subdirs, limit)
+            subdirs = random.sample(subdirs, limit + skip_first)[skip_first:]
         
         if parallel:
             with ThreadPoolExecutor(thread_name_prefix="Directory_Evaluation") as executor:
