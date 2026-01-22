@@ -15,10 +15,8 @@ from core.backoff import get_waiting_time
 __CHATS : Dict[str, chats.Chat] = {}
 __ENGINES : Dict[str, VertexEngine] = {}
 __CACHE : Dict[str, types.CachedContent] = {}
-__CHUNKS : Dict[str, List[List[types.Part]]] = {}  # Key: submission_id, Value: cached chunks
 
 __API_LOCK: threading.Semaphore = threading.Semaphore(5)
-__CHUNKS_LOCK: threading.Lock = threading.Lock()
 
 def create_chat(pydantic_model: Type[pydantic.BaseModel], system_instructions: str, model_id: str = 'gemini-2.5-flash',
                 search_included : bool = False, thinking_included : bool = False,
@@ -93,9 +91,12 @@ def create_chat(pydantic_model: Type[pydantic.BaseModel], system_instructions: s
 def send_message_with_token_counting(chat: chats.Chat, message: Union[list[types.PartUnionDict], types.PartUnionDict],
                                      config: Optional[types.GenerateContentConfigOrDict] = None) -> types.GenerateContentResponse:
 
-    with __API_LOCK:
+    if wait:
+        with __API_LOCK:
+            response = chat.send_message(message=message, config=config)
+            time.sleep(get_waiting_time())
+    else:
         response = chat.send_message(message=message, config=config)
-        time.sleep(get_waiting_time())
     # add output tokens to the count
     additional_output_tokens = response.usage_metadata.candidates_token_count
     increase_total_output_tokens(additional_tokens=additional_output_tokens)
@@ -122,21 +123,9 @@ def send_message_with_cutting(chat: chats.Chat, engine: VertexEngine, prompt_par
     total_tokens = engine.count_tokens(prompt_parts)
 
     if total_tokens > limit:
-        LOG.info(f"Prompt tokens ({total_tokens}) exceed limit ({limit}). Cutting off the excessive input.")
-        global __CHUNKS
-        with __CHUNKS_LOCK:
-            # Use submission_id as cache key if provided, otherwise skip caching
-            chunks = __CHUNKS.get(submission_id, None)
-            
-            if not chunks:
-                chunks = engine.cutting_contents(prompt_parts, limit)
-                if submission_id:
-                    __CHUNKS[submission_id] = chunks
-                    LOG.debug(f"Cached chunks for submission {submission_id}")
-            else:
-                LOG.debug(f"Reusing cached chunks for submission {submission_id}")
+        LOG.info(f"Prompt tokens ({total_tokens}) exceed limit ({limit}). Analyzing main_paper only")
 
-        return send_message_with_token_counting(chat=chat, message=chunks)
+        return send_message_with_token_counting(chat=chat, message=prompt_parts[:2])
     else:
         return send_message_with_token_counting(chat=chat, message=prompt_parts)
 
@@ -221,17 +210,6 @@ def ask_final(analysis_report: AnalysisReport, submission_id: str = None) -> typ
     return send_message_with_cutting(final_agent_chat, engine, prompt_parts, submission_id=submission_id)
 
 
-def cleanup_submission_chunks(submission_id: str) -> None:
-    """
-    Cleans up the cached chunks for a specific submission after it's been fully processed.
-    
-    :param submission_id: The submission identifier to clean up chunks for.
-    """
-    global __CHUNKS
-    with __CHUNKS_LOCK:
-        if submission_id in __CHUNKS:
-            del __CHUNKS[submission_id]
-            LOG.debug(f"Cleaned up cached chunks for submission {submission_id}")
 
 
 def cleanup_caches() -> None:
