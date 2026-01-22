@@ -268,6 +268,7 @@ def evaluate_submission_full(evaluation_results: Dict[str, SubmissionMetrics], s
     evaluation_results_df.loc[:, 'similarity_score'] = 0.0
     evaluation_results_df.loc[:, 'total_input_tokens'] = 0
     evaluation_results_df.loc[:, 'total_output_tokens'] = 0
+    evaluation_results_df.loc[:, 'total_elapsed_time']  = 0.0
 
     # Mapping CSV status to model decision
     STATUS_MAP = {
@@ -350,6 +351,7 @@ def evaluate_submission_full(evaluation_results: Dict[str, SubmissionMetrics], s
             evaluation_results_df.loc[directory_name, 'similarity_score'] = similarity_score
             evaluation_results_df.loc[directory_name, 'total_input_tokens'] = metrics.total_input_token_count
             evaluation_results_df.loc[directory_name, 'total_output_tokens']  = metrics.total_output_token_count
+            evaluation_results_df.loc[directory_name, 'total_elapsed_time'] = metrics.total_elapsed_time
 
 
             total_scores.append(score)
