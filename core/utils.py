@@ -44,6 +44,8 @@ def create_chat(pydantic_model: Type[pydantic.BaseModel], system_instructions: s
         return
 
     engine = VertexEngine(model_id=model_id)
+    if isinstance(pydantic_model, FinalDecision):
+        engine.set_temperature(temp=0.0)
 
     structured_engine = engine.set_schema(schema=pydantic_model)
     # NEW: Create cache for style guides before creating the chat
@@ -89,7 +91,7 @@ def create_chat(pydantic_model: Type[pydantic.BaseModel], system_instructions: s
 
 
 def send_message_with_token_counting(chat: chats.Chat, message: Union[list[types.PartUnionDict], types.PartUnionDict],
-                                     config: Optional[types.GenerateContentConfigOrDict] = None) -> types.GenerateContentResponse:
+                                     config: Optional[types.GenerateContentConfigOrDict] = None, wait: bool = False) -> types.GenerateContentResponse:
 
     if wait:
         with __API_LOCK:
@@ -108,16 +110,15 @@ def send_message_with_token_counting(chat: chats.Chat, message: Union[list[types
     return response
 
 
-def send_message_with_cutting(chat: chats.Chat, engine: VertexEngine, prompt_parts: List[types.Part], submission_id: str = None) -> Optional[types.GenerateContentResponse]:
+def send_message_with_cutting(chat: chats.Chat, engine: VertexEngine, prompt_parts: List[types.Part]) -> Optional[types.GenerateContentResponse]:
     """
-    Sends a message to the model, splitting it into parts if it exceeds the token limit.
-    Each part generates a structured response, which are then merged.
+    Sends a message to the model, sending only main paper pdf if it exceeds the token limit.
+    Keeps removing parts from the end until the remaining content fits within the context window.
 
     :param chat: The chat session to use.
     :param engine: The engine containing model and configuration.
     :param prompt_parts: The list of Parts to send.
-    :param submission_id: Unique identifier for the submission (e.g., directory path). Used for caching chunks.
-    :return: The merged response from the model.
+    :return: The response from the model.
     """
     limit = engine.get_model_limit()
     total_tokens = engine.count_tokens(prompt_parts)
@@ -173,7 +174,7 @@ def ask_agent(pydantic_model: Type[pydantic.BaseModel], path_to_sub_dir: str) ->
                 if not s_file_mime:
                     file_part = try_decoding(binary_data=f_read)
                     if not file_part:
-                        LOG.warn(f"The file '{s_file}' couldn't be uploaded due to unsupported mime_type, but the notice was added. ")
+                        LOG.info(f"The file '{s_file}' couldn't be uploaded due to unsupported mime_type, but the notice was added.")
                         continue
 
                     prompt_parts.append(file_part)
@@ -183,7 +184,7 @@ def ask_agent(pydantic_model: Type[pydantic.BaseModel], path_to_sub_dir: str) ->
                         mime_type=s_file_mime
                     ))
 
-    return send_message_with_cutting(agent_chat, engine, prompt_parts, submission_id=path_to_sub_dir)
+    return send_message_with_cutting(agent_chat, engine, prompt_parts)
 
 def ask_final(analysis_report: AnalysisReport, submission_id: str = None) -> types.GenerateContentResponse:
     """
@@ -207,8 +208,7 @@ def ask_final(analysis_report: AnalysisReport, submission_id: str = None) -> typ
                 text=f"Here is the result of {key}:\n{val}\n"
             ))
 
-    return send_message_with_cutting(final_agent_chat, engine, prompt_parts, submission_id=submission_id)
-
+    return send_message_with_cutting(final_agent_chat, engine, prompt_parts)
 
 
 
