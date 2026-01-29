@@ -32,7 +32,9 @@ class SubmissionMetrics:
                  category: str = None,
                  sub_category: str = None,
                  reasoning: str = None,
-                 confidence_score: float = None):
+                 confidence_score: float = None,
+                 error_type: str = None,
+                 error_message: str = None):
         self.final_decision = final_decision
         self.total_input_token_count = total_input_token_count
         self.total_output_token_count = total_output_token_count
@@ -44,6 +46,9 @@ class SubmissionMetrics:
         self.sub_category = sub_category
         self.reasoning = reasoning
         self.confidence_score = confidence_score
+        # Error tracking fields
+        self.error_type = error_type
+        self.error_message = error_message
     
     def to_final_decision(self, status: str) -> FinalDecision:
         """
@@ -201,6 +206,7 @@ def get_total_output_tokens():
     __SUBMISSION_OUTPUT_TOKENS = 0
     return  old_total_input_tokens
 
+
 def evaluate_submission_answers_only(evaluation_results: Dict[str, SubmissionMetrics]) -> None:
     """
     Evaluates the model's binary desk-rejection decisions against ground truth labels.
@@ -269,6 +275,8 @@ def evaluate_submission_full(evaluation_results: Dict[str, SubmissionMetrics], s
     evaluation_results_df.loc[:, 'total_input_tokens'] = 0
     evaluation_results_df.loc[:, 'total_output_tokens'] = 0
     evaluation_results_df.loc[:, 'total_elapsed_time']  = 0.0
+    evaluation_results_df.loc[:, "error_status"] = None
+    evaluation_results_df.loc[:, "error_message"] = None
 
     # Mapping CSV status to model decision
     STATUS_MAP = {
@@ -291,6 +299,13 @@ def evaluate_submission_full(evaluation_results: Dict[str, SubmissionMetrics], s
     for directory_name, metrics in evaluation_results.items():
         # Get ground truth
         if metrics:
+            # Store error information if present
+            if metrics.error_type:
+                evaluation_results_df.loc[directory_name, "error_status"] = metrics.error_type
+                evaluation_results_df.loc[directory_name, "error_message"] = metrics.error_message or ""
+                LOG.warning(f"{directory_name}: {metrics.error_type} - {metrics.error_message}")
+                continue  # Skip evaluation for failed submissions
+            
             # Convert SASP/SACP metrics to FinalDecision if needed
             if metrics.final_decision is None and metrics.system_name in ['SASP', 'SACP']:
                 # This is a SASP/SACP metrics object, convert it

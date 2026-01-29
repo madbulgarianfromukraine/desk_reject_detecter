@@ -10,7 +10,7 @@ from core.schemas import (
 from core.logprobs import combine_confidences
 from core.log import LOG
 from core.metrics import SubmissionMetrics, get_total_input_tokens, get_total_output_tokens
-from core.backoff import double_waiting_time, reset_waiting_time
+from core.rate_limiter import RateLimitError
 # Import Agents
 from agents import final_decision_agent
 from agents.utils import AGENT_MAPPING, create_chats
@@ -59,6 +59,7 @@ def ddr(path_sub_dir: Union[os.PathLike, str], think: bool = False, search: bool
     MAX_ITERATIONS = iterations
     
     agent_results : Dict[str, Optional[Type[pydantic.BaseModel]]] = {key: None for key in AGENT_MAPPING.keys()}
+    agent_errors : Dict[str, Optional[Dict[str, str]]] = {key: None for key in AGENT_MAPPING.keys()}  # Store errors per agent
     start_time = time.time()
     for iteration in range(MAX_ITERATIONS):
         
@@ -97,23 +98,33 @@ def ddr(path_sub_dir: Union[os.PathLike, str], think: bool = False, search: bool
                     # Update only if confidence is higher or if it's the first result
                     if agent_results[agent_name] is None or parsed_response.confidence_score > agent_results[agent_name].confidence_score:
                         agent_results[agent_name] = parsed_response
+                        agent_errors[agent_name] = None  # Clear error if successful
                         LOG.debug(f"{agent_name} updated with confidence {parsed_response.confidence_score}.")
                     else:
                         LOG.debug(f"{agent_name} current confidence ({parsed_response.confidence_score}) is not higher than existing ({agent_results[agent_name].confidence_score}). Keeping existing.")
 
-                    reset_waiting_time()
                 except Exception as exc:
                     LOG.error(f"{agent_name} generated an exception: {exc}")
-                    if "429 RESOURCE EXHAUSTED" in exc.__str__():
-                        double_waiting_time()
                     agent_results[agent_name] = None
 
     # Ensure all results are present, even if some failed (fallback or re-raise)
-    for key, result in agent_results.items():
-        if result is None:
-            LOG.error(f"Agent {key} failed to provide a result after {MAX_ITERATIONS} iterations.")
-            # In a real system, you might want to raise an error or provide a default fail-safe result
-            return None
+    submission_error_type = None
+    submission_error_message = None
+    failed_agents = [key for key, result in agent_results.items() if result is None]
+    
+    if failed_agents:
+        LOG.error(f"Failed agents: {failed_agents}")
+        # Return SubmissionMetrics with error information
+        submission_error_type = "AgentFailure"
+        submission_error_message = f"Agents failed: {', '.join(failed_agents)}"
+        return SubmissionMetrics(
+            final_decision=None,
+            total_input_token_count=get_total_input_tokens(),
+            total_output_token_count=get_total_output_tokens(),
+            total_elapsed_time=time.time() - start_time,
+            error_type=submission_error_type,
+            error_message=submission_error_message
+        )
 
     # Remove confidence scores from all checks before passing to final agent
     for key, result in agent_results.items():
@@ -135,5 +146,7 @@ def ddr(path_sub_dir: Union[os.PathLike, str], think: bool = False, search: bool
 
     end_time = time.time()
     return SubmissionMetrics(final_decision=final_decision_response.parsed, total_input_token_count=get_total_input_tokens(),
-                             total_output_token_count=get_total_output_tokens(), total_elapsed_time=end_time - start_time)
+                             total_output_token_count=get_total_output_tokens(), total_elapsed_time=end_time - start_time,
+                             error_type=submission_error_type,
+                             error_message=submission_error_message)
 

@@ -10,7 +10,7 @@ from core.log import LOG
 from core.schemas import AnalysisReport, FinalDecision
 from core.metrics import increase_total_output_tokens, increase_total_input_tokens
 from core.files import get_style_guides_parts, get_optimized_fallback_mime, try_decoding, add_supplemental_files
-from core.backoff import get_waiting_time
+from core.rate_limiter import retry_with_backoff
 
 __CHATS : Dict[str, chats.Chat] = {}
 __ENGINES : Dict[str, VertexEngine] = {}
@@ -93,17 +93,23 @@ def create_chat(pydantic_model: Type[pydantic.BaseModel], system_instructions: s
 def send_message_with_token_counting(chat: chats.Chat, message: Union[list[types.PartUnionDict], types.PartUnionDict],
                                      config: Optional[types.GenerateContentConfigOrDict] = None, wait: bool = False) -> types.GenerateContentResponse:
 
-    if wait:
+    @retry_with_backoff
+    def _send_with_retry():
+        """Inner function to apply retry logic to chat.send_message."""
         with __API_LOCK:
             response = chat.send_message(message=message, config=config)
-            time.sleep(get_waiting_time())
-    else:
-        response = chat.send_message(message=message, config=config)
+            if wait:
+                # Rate limit friendly delay: 5 req/sec = 200ms per request
+                time.sleep(0.2)
+            return response
+    
+    response = _send_with_retry()
+
     # add output tokens to the count
     additional_output_tokens = response.usage_metadata.candidates_token_count
     increase_total_output_tokens(additional_tokens=additional_output_tokens)
 
-    #add input tokens to the count
+    # add input tokens to the count
     additional_input_tokens = response.usage_metadata.prompt_token_count
     increase_total_input_tokens(additional_tokens=additional_input_tokens)
 
