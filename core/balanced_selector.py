@@ -5,6 +5,7 @@ This module provides functionality to select submissions in a balanced way,
 ensuring equal representation of desk-rejected and non-desk-rejected papers.
 """
 
+import random
 import pandas as pd
 import os
 from typing import List, Tuple, Optional
@@ -119,8 +120,13 @@ def get_balanced_submission_dirs(
         random_seed=random_seed
     )
     
-    return desk_rejected_paths + not_rejected_paths
+    return get_shuffled_paths(desk_rejected_paths, not_rejected_paths)
 
+
+def get_shuffled_paths(*args):
+    combined = [item for lst in args for item in lst]
+    random.shuffle(combined)
+    return combined
 
 def get_balanced_submission_info(
     num_per_class: int = 35,

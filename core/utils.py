@@ -137,7 +137,7 @@ def send_message_with_cutting(chat: chats.Chat, engine: VertexEngine, prompt_par
         return send_message_with_token_counting(chat=chat, message=prompt_parts)
 
 
-def ask_agent(pydantic_model: Type[pydantic.BaseModel], path_to_sub_dir: str) -> types.GenerateContentResponse:
+def ask_agent(pydantic_model: Type[pydantic.BaseModel], path_to_sub_dir: str, main_paper_only: bool = False) -> types.GenerateContentResponse:
     """
     Constructs a multi-modal prompt and sends it to the specified agent.
 
@@ -164,31 +164,32 @@ def ask_agent(pydantic_model: Type[pydantic.BaseModel], path_to_sub_dir: str) ->
         ))
 
     # --- 3. Supplemental Files (Optional Sequence: Text -> Multiple Files) ---
-    supp_path = os.path.join(path_to_sub_dir, "supplemental_files")
-    if os.path.exists(supp_path):
-        prompt_parts.append(types.Part.from_text(text="Here are the supplemental files for the paper"))
-        supplemental_files = add_supplemental_files(supp_path)
-        for s_file in supplemental_files:
-            s_file_mime = get_optimized_fallback_mime(s_file)
-            prompt_parts.append(types.Part.from_text(text=f"The file {s_file}:"))
+    if not main_paper_only:
+        supp_path = os.path.join(path_to_sub_dir, "supplemental_files")
+        if os.path.exists(supp_path):
+            prompt_parts.append(types.Part.from_text(text="Here are the supplemental files for the paper"))
+            supplemental_files = add_supplemental_files(supp_path)
+            for s_file in supplemental_files:
+                s_file_mime = get_optimized_fallback_mime(s_file)
+                prompt_parts.append(types.Part.from_text(text=f"The file {s_file}:"))
 
-            with open(s_file, "rb") as f:
-                f_read = f.read()
-                if len(f_read) <= 0:
-                    continue
-
-                if not s_file_mime:
-                    file_part = try_decoding(binary_data=f_read)
-                    if not file_part:
-                        LOG.info(f"The file '{s_file}' couldn't be uploaded due to unsupported mime_type, but the notice was added.")
+                with open(s_file, "rb") as f:
+                    f_read = f.read()
+                    if len(f_read) <= 0:
                         continue
 
-                    prompt_parts.append(file_part)
-                else:
-                    prompt_parts.append(types.Part.from_bytes(
-                        data=f_read,
-                        mime_type=s_file_mime
-                    ))
+                    if not s_file_mime:
+                        file_part = try_decoding(binary_data=f_read)
+                        if not file_part:
+                            LOG.info(f"The file '{s_file}' couldn't be uploaded due to unsupported mime_type, but the notice was added.")
+                            continue
+
+                        prompt_parts.append(file_part)
+                    else:
+                        prompt_parts.append(types.Part.from_bytes(
+                            data=f_read,
+                            mime_type=s_file_mime
+                        ))
 
     return send_message_with_cutting(agent_chat, engine, prompt_parts)
 
