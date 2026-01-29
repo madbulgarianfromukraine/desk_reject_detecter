@@ -22,7 +22,7 @@ import concurrent.futures
 MODEL_ID = "gemini-2.5-flash"
 
 
-def ddr(path_sub_dir: Union[os.PathLike, str], think: bool = False, search: bool = False, iterations: int = 3, ttl_seconds: str = "300s") -> Optional[SubmissionMetrics]:
+def ddr(path_sub_dir: Union[os.PathLike, str], think: bool = False, search: bool = False, iterations: int = 3, ttl_seconds: str = "300s", main_paper_only: bool = False) -> Optional[SubmissionMetrics]:
     """
     Main Orchestrator for the ddr system.
 
@@ -77,7 +77,7 @@ def ddr(path_sub_dir: Union[os.PathLike, str], think: bool = False, search: bool
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=5, thread_name_prefix="AgentThread") as executor:
             future_to_agent = {
-                executor.submit(func, path_sub_dir): key 
+                executor.submit(func, path_sub_dir, main_paper_only): key 
                 for key, func in agents_to_run.items()
             }
 

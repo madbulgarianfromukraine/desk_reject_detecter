@@ -98,7 +98,7 @@ class DeskRejectionCLI:
 
     def evaluate_desk_rejection(self, directory: str, system_used: str = 'ddr',
                                 parallel: bool = False, answers_only: bool = False, limit: int = None,
-                                skip_first: int = 0, balanced: bool = False, per_class: int = 35) -> None:
+                                skip_first: int = 0, balanced: bool = False, main_paper_only: bool = False) -> None:
         """
         Runs an evaluation of all submissions in the directory and produces a report without a binding decision.
         Usage: python cli.py evaluate_desk_rejection ./my_paper_folder --limit 5
@@ -107,7 +107,6 @@ class DeskRejectionCLI:
         :param answers_only: Evaluate only the precision of the answer or also consider the precision of the reason for desk rejection.
         :param limit: Limits the amount of tested instances.
         :param balanced: If True, selects equal number of desk-rejected and non-desk-rejected submissions.
-        :param per_class: Number of submissions per class to select when balanced=True (default: 35).
         """
         eval_results = {}
         LOG.debug(f"--- EVALUATING {directory.split(sep='/')[-1]} with answers_only={answers_only} ---")
@@ -122,18 +121,18 @@ class DeskRejectionCLI:
                 from systems.sacp import sacp
                 desk_rejection_system = sacp
             case 'ddr-1-iteration':
-                def __run_ddr_1_iteration(path_sub_dir: Union[os.PathLike, str], think: bool = False, search: bool = False) -> SubmiossionMetrics:
-                    return ddr(path_sub_dir=path_sub_dir, think=think, search=search, iterations=1, ttl_seconds="10800s")
+                def __run_ddr_1_iteration(path_sub_dir: Union[os.PathLike, str], main_paper_only: bool = False, think: bool = False, search: bool = False) -> SubmissionMetrics:
+                    return ddr(path_sub_dir=path_sub_dir, think=think, search=search, iterations=1, ttl_seconds="10800s", main_paper_only=main_paper_only)
 
                 desk_rejection_system = __run_ddr_1_iteration
             case 'ddr-think-search':
-                def __run_ddr_think_search(path_sub_dir: Union[os.PathLike, str]) -> SubmissionMetrics:
-                    return ddr(path_sub_dir=path_sub_dir, think=True, search=True, ttl_seconds="10800s")
+                def __run_ddr_think_search(path_sub_dir: Union[os.PathLike, str], main_paper_only: bool = False) -> SubmissionMetrics:
+                    return ddr(path_sub_dir=path_sub_dir, think=True, search=True, ttl_seconds="10800s", main_paper_only=main_paper_only)
 
                 desk_rejection_system = __run_ddr_think_search
             case _ :
-                def __run_ddr_default(path_sub_dir: Union[os.PathLike, str], think: bool = False, search: bool = False) -> SubmissionMetrics:
-                    return ddr(path_sub_dir=path_sub_dir, think=think, search=search, ttl_seconds="10800s")
+                def __run_ddr_default(path_sub_dir: Union[os.PathLike, str], main_paper_only: bool = False, think: bool = False, search: bool = False) -> SubmissionMetrics:
+                    return ddr(path_sub_dir=path_sub_dir, think=think, search=search, ttl_seconds="10800s", main_paper_only=main_paper_only)
 
                 desk_rejection_system = __run_ddr_default
 
@@ -141,6 +140,7 @@ class DeskRejectionCLI:
         
         # Use balanced selection if requested
         if balanced:
+            per_class = (limit // 2) if limit and limit > 0 else 35
             LOG.info(f"Using balanced selection: {per_class} desk-rejected and {per_class} non-desk-rejected submissions")
             try:
                 balanced_dirs = get_balanced_submission_dirs(num_per_class=per_class, random_seed=42)
@@ -162,7 +162,7 @@ class DeskRejectionCLI:
         
         if parallel:
             with ThreadPoolExecutor(thread_name_prefix="Directory_Evaluation", max_workers=3) as executor:
-                future_to_eval_result = {executor.submit(desk_rejection_system, diry): diry for diry in subdirs}
+                future_to_eval_result = {executor.submit(desk_rejection_system, diry, main_paper_only): diry for diry in subdirs}
 
                 for future in as_completed(future_to_eval_result):
                     evaluation_paper_dir = future_to_eval_result[future]
@@ -178,7 +178,7 @@ class DeskRejectionCLI:
             for ind,diry in enumerate(subdirs):
                 LOG.info(f"Evaluating submission number {ind+1}")
                 try:
-                    evaluation_paper_result = desk_rejection_system(diry)
+                    evaluation_paper_result = desk_rejection_system(diry, main_paper_only)
                     eval_results[diry] = evaluation_paper_result
                 except Exception as exc:
                     eval_results[diry] = None
