@@ -68,7 +68,7 @@ class PolicyCheck(BaseModel):
     - Plagiarism or dual submission indicators.
     """
     violation_found: bool
-    issue_type: Literal["Placeholder_Text", "Dual_Submission", "Plagiarism", "None"] = "None"
+    issue_type: Literal["Placeholder_Text", "Plagiarism", "None"] = "None"
     evidence_snippet: str
     reasoning: str
     confidence_score: Optional[float] = Field(default=None, ge=0.0, le=1.0)
