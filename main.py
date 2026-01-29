@@ -16,6 +16,7 @@ from core.schemas import FinalDecision
 from core.log import LOG, configure_logging
 from core.metrics import evaluate_submission_answers_only, evaluate_submission_full, SubmissionMetrics
 from core.utils import cleanup_caches
+from core.balanced_selector import get_balanced_submission_dirs
 
 AVAILABLE_SYSTEMS = [
     'ddr', # desk reject detecter
@@ -97,7 +98,7 @@ class DeskRejectionCLI:
 
     def evaluate_desk_rejection(self, directory: str, system_used: str = 'ddr',
                                 parallel: bool = False, answers_only: bool = False, limit: int = None,
-                                skip_first: int = 0) -> None:
+                                skip_first: int = 0, balanced: bool = False, per_class: int = 35) -> None:
         """
         Runs an evaluation of all submissions in the directory and produces a report without a binding decision.
         Usage: python cli.py evaluate_desk_rejection ./my_paper_folder --limit 5
@@ -105,6 +106,8 @@ class DeskRejectionCLI:
         :param parallel: Whether to run in parallel mode.
         :param answers_only: Evaluate only the precision of the answer or also consider the precision of the reason for desk rejection.
         :param limit: Limits the amount of tested instances.
+        :param balanced: If True, selects equal number of desk-rejected and non-desk-rejected submissions.
+        :param per_class: Number of submissions per class to select when balanced=True (default: 35).
         """
         eval_results = {}
         LOG.debug(f"--- EVALUATING {directory.split(sep='/')[-1]} with answers_only={answers_only} ---")
@@ -136,13 +139,24 @@ class DeskRejectionCLI:
 
         subdirs = [os.path.join(directory, d) for d in os.listdir(directory) if os.path.isdir(os.path.join(directory, d))]
         
+        # Use balanced selection if requested
+        if balanced:
+            LOG.info(f"Using balanced selection: {per_class} desk-rejected and {per_class} non-desk-rejected submissions")
+            try:
+                balanced_dirs = get_balanced_submission_dirs(num_per_class=per_class, random_seed=42)
+                # Convert relative paths to full paths if needed
+                subdirs = [os.path.join(directory, os.path.basename(d)) for d in balanced_dirs]
+                LOG.info(f"Selected {len(subdirs)} balanced submissions")
+            except Exception as e:
+                LOG.error(f"Failed to use balanced selection: {e}. Falling back to random sampling.")
+        
         # Apply the limit if provided
-        if limit is None or limit <= 0:
+        elif limit is None or limit <= 0:
             limit = len(subdirs)
         else:
             limit = min(limit, len(subdirs))
 
-        if limit < len(subdirs):
+        if not balanced and (limit < len(subdirs)):
             random.seed(42)
             subdirs = random.sample(subdirs, limit + skip_first)[skip_first:]
         
