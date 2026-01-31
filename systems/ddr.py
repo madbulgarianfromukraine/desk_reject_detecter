@@ -1,4 +1,4 @@
-from typing import Union, Dict, Optional, Type, List
+from typing import Union, Dict, Optional, Type, List, Any
 
 import pydantic
 import time
@@ -60,6 +60,7 @@ def ddr(path_sub_dir: Union[os.PathLike, str], think: bool = False, search: bool
     
     agent_results : Dict[str, Optional[Type[pydantic.BaseModel]]] = {key: None for key in AGENT_MAPPING.keys()}
     agent_errors : Dict[str, Optional[Dict[str, str]]] = {key: None for key in AGENT_MAPPING.keys()}  # Store errors per agent
+    agent_iteration_results : Dict[str, List[Dict[str, Any]]] = {key: [] for key in AGENT_MAPPING.keys()}  # Track all iterations
     start_time = time.time()
     for iteration in range(MAX_ITERATIONS):
         
@@ -95,6 +96,15 @@ def ddr(path_sub_dir: Union[os.PathLike, str], think: bool = False, search: bool
                         parsed_response.confidence_score = new_confidence
                         LOG.debug(f"Substituted {agent_name} confidence with logprob-based score: {new_confidence}")
 
+                    # Record this iteration's result
+                    iteration_result = {
+                        "result": parsed_response.violation_found,
+                        "evidence_snippet": parsed_response.evidence_snippet,
+                        "confidence" : parsed_response.confidence_score
+                    }
+                    agent_iteration_results[agent_name].append(iteration_result)
+                    LOG.debug(f"{agent_name} iteration {iteration + 1} result: {iteration_result}")
+
                     # Update only if confidence is higher or if it's the first result
                     if agent_results[agent_name] is None or parsed_response.confidence_score > agent_results[agent_name].confidence_score:
                         agent_results[agent_name] = parsed_response
@@ -123,7 +133,8 @@ def ddr(path_sub_dir: Union[os.PathLike, str], think: bool = False, search: bool
             total_output_token_count=get_total_output_tokens(),
             total_elapsed_time=time.time() - start_time,
             error_type=submission_error_type,
-            error_message=submission_error_message
+            error_message=submission_error_message,
+            agent_iteration_results=agent_iteration_results
         )
 
     # Remove confidence scores from all checks before passing to final agent
@@ -133,12 +144,12 @@ def ddr(path_sub_dir: Union[os.PathLike, str], think: bool = False, search: bool
             LOG.debug(f"Set confidence_score to None for {key}")
 
     analysis_report = AnalysisReport(
-        safety_check=agent_results["safety_check"],
-        anonymity_check=agent_results["anonymity_check"],
-        visual_integrity_check=agent_results["visual_integrity_check"],
-        formatting_check=agent_results["formatting_check"],
-        policy_check=agent_results["policy_check"],
-        scope_check=agent_results["scope_check"]
+        safety_check=None,  # DISABLED
+        anonymity_check=agent_results.get("anonymity_check"),
+        visual_integrity_check=None,  # DISABLED
+        formatting_check=agent_results.get("formatting_check"),
+        policy_check=agent_results.get("policy_check"),
+        scope_check=agent_results.get("scope_check")
     )
 
     final_decision_response = final_decision_agent.ask_final_decision_agent(analysis_report=analysis_report, submission_id=str(path_sub_dir))
@@ -148,5 +159,6 @@ def ddr(path_sub_dir: Union[os.PathLike, str], think: bool = False, search: bool
     return SubmissionMetrics(final_decision=final_decision_response.parsed, total_input_token_count=get_total_input_tokens(),
                              total_output_token_count=get_total_output_tokens(), total_elapsed_time=end_time - start_time,
                              error_type=submission_error_type,
-                             error_message=submission_error_message)
+                             error_message=submission_error_message,
+                             agent_iteration_results=agent_iteration_results)
 

@@ -1,6 +1,6 @@
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import threading
 
 # data manipulation libraries
@@ -34,7 +34,8 @@ class SubmissionMetrics:
                  reasoning: str = None,
                  confidence_score: float = None,
                  error_type: str = None,
-                 error_message: str = None):
+                 error_message: str = None,
+                 agent_iteration_results: Dict[str, List[Dict[str, Any]]] = None):
         self.final_decision = final_decision
         self.total_input_token_count = total_input_token_count
         self.total_output_token_count = total_output_token_count
@@ -49,6 +50,9 @@ class SubmissionMetrics:
         # Error tracking fields
         self.error_type = error_type
         self.error_message = error_message
+        # Per-iteration agent results tracking
+        # Structure: {agent_name: [{"result": bool, "evidence_snippet": str, "confidence": float}, ...]}
+        self.agent_iteration_results = agent_iteration_results or {}
     
     def to_final_decision(self, status: str) -> FinalDecision:
         """
@@ -57,62 +61,31 @@ class SubmissionMetrics:
         :param status: The status from SASP/SACP (ACCEPT/REJECT/UNCERTAIN)
         :return: FinalDecision object compatible with evaluate_submission_full
         """
-        from core.schemas import AnalysisReport, SafetyCheck, AnonymityCheck, FormattingCheck, PolicyCheck, VisualIntegrityCheck, ScopeCheck
+        from core.schemas import AnalysisReport, AnonymityCheck, FormattingCheck, PolicyCheck, ScopeCheck
         
-        # Map SASP/SACP category to FinalDecision category
-        category_map = {
-            "Code_of_Ethics": "Code_of_Ethics",
-            "Anonymity": "Anonymity",
-            "Formatting": "Formatting",
-            "Visual_Integrity": "Visual_Integrity",
-            "Policy": "Policy",
-            "Scope": "Scope",
-            "None": "None"
-        }
         
-        mapped_category = category_map.get(self.category, "None")
         
         # Create empty check templates
         empty_check_template = {
-            "safety": SafetyCheck(violation_found=False, issue_type="None", evidence_snippet="", reasoning="", confidence_score=0.0),
             "anonymity": AnonymityCheck(violation_found=False, issue_type="None", evidence_snippet="", reasoning="", confidence_score=0.0),
-            "visual": VisualIntegrityCheck(violation_found=False, issue_type="None", evidence_snippet="", reasoning="", confidence_score=0.0),
             "formatting": FormattingCheck(violation_found=False, issue_type="None", evidence_snippet="", reasoning="", confidence_score=0.0),
             "policy": PolicyCheck(violation_found=False, issue_type="None", evidence_snippet="", reasoning="", confidence_score=0.0),
             "scope": ScopeCheck(violation_found=False, issue_type="None", evidence_snippet="", reasoning="", confidence_score=0.0),
         }
         
         # Create the actual check for the identified category
-        category_to_check_map = {
-            "Code_of_Ethics": "safety",
-            "Anonymity": "anonymity",
-            "Formatting": "formatting",
-            "Visual_Integrity": "visual",
-            "Policy": "policy",
-            "Scope": "scope"
-        }
+        category_to_check_map = ["anonymity", "formatting", "policy","scope"]
         
+
         # Build the analysis report
-        if mapped_category != "None" and mapped_category in category_to_check_map:
-            check_type = category_to_check_map[mapped_category]
-            if check_type == "safety":
-                check = SafetyCheck(violation_found=True, issue_type=self.sub_category if self.sub_category != "None" else "None", 
-                                   evidence_snippet=self.reasoning or "", reasoning=self.reasoning or "", confidence_score=self.confidence_score or 0.0)
-                analysis = AnalysisReport(
-                    safety_check=check,
-                    anonymity_check=empty_check_template["anonymity"],
-                    visual_integrity_check=empty_check_template["visual"],
-                    formatting_check=empty_check_template["formatting"],
-                    policy_check=empty_check_template["policy"],
-                    scope_check=empty_check_template["scope"]
-                )
-            elif check_type == "anonymity":
+        if self.category.lower() in category_to_check_map:
+            check_type = self.category.lower()
+
+            if check_type == "anonymity":
                 check = AnonymityCheck(violation_found=True, issue_type=self.sub_category if self.sub_category != "None" else "None",
                                       evidence_snippet=self.reasoning or "", reasoning=self.reasoning or "", confidence_score=self.confidence_score or 0.0)
                 analysis = AnalysisReport(
-                    safety_check=empty_check_template["safety"],
                     anonymity_check=check,
-                    visual_integrity_check=empty_check_template["visual"],
                     formatting_check=empty_check_template["formatting"],
                     policy_check=empty_check_template["policy"],
                     scope_check=empty_check_template["scope"]
@@ -121,21 +94,8 @@ class SubmissionMetrics:
                 check = FormattingCheck(violation_found=True, issue_type=self.sub_category if self.sub_category != "None" else "None",
                                        evidence_snippet=self.reasoning or "", reasoning=self.reasoning or "", confidence_score=self.confidence_score or 0.0)
                 analysis = AnalysisReport(
-                    safety_check=empty_check_template["safety"],
                     anonymity_check=empty_check_template["anonymity"],
-                    visual_integrity_check=empty_check_template["visual"],
                     formatting_check=check,
-                    policy_check=empty_check_template["policy"],
-                    scope_check=empty_check_template["scope"]
-                )
-            elif check_type == "visual":
-                check = VisualIntegrityCheck(violation_found=True, issue_type=self.sub_category if self.sub_category != "None" else "None",
-                                            evidence_snippet=self.reasoning or "", reasoning=self.reasoning or "", confidence_score=self.confidence_score or 0.0)
-                analysis = AnalysisReport(
-                    safety_check=empty_check_template["safety"],
-                    anonymity_check=empty_check_template["anonymity"],
-                    visual_integrity_check=check,
-                    formatting_check=empty_check_template["formatting"],
                     policy_check=empty_check_template["policy"],
                     scope_check=empty_check_template["scope"]
                 )
@@ -143,9 +103,7 @@ class SubmissionMetrics:
                 check = PolicyCheck(violation_found=True, issue_type=self.sub_category if self.sub_category != "None" else "None",
                                    evidence_snippet=self.reasoning or "", reasoning=self.reasoning or "", confidence_score=self.confidence_score or 0.0)
                 analysis = AnalysisReport(
-                    safety_check=empty_check_template["safety"],
                     anonymity_check=empty_check_template["anonymity"],
-                    visual_integrity_check=empty_check_template["visual"],
                     formatting_check=empty_check_template["formatting"],
                     policy_check=check,
                     scope_check=empty_check_template["scope"]
@@ -154,9 +112,7 @@ class SubmissionMetrics:
                 check = ScopeCheck(violation_found=True, issue_type=self.sub_category if self.sub_category != "None" else "None",
                                   evidence_snippet=self.reasoning or "", reasoning=self.reasoning or "", confidence_score=self.confidence_score or 0.0)
                 analysis = AnalysisReport(
-                    safety_check=empty_check_template["safety"],
                     anonymity_check=empty_check_template["anonymity"],
-                    visual_integrity_check=empty_check_template["visual"],
                     formatting_check=empty_check_template["formatting"],
                     policy_check=empty_check_template["policy"],
                     scope_check=check
@@ -164,9 +120,7 @@ class SubmissionMetrics:
         else:
             # No violation found
             analysis = AnalysisReport(
-                safety_check=empty_check_template["safety"],
                 anonymity_check=empty_check_template["anonymity"],
-                visual_integrity_check=empty_check_template["visual"],
                 formatting_check=empty_check_template["formatting"],
                 policy_check=empty_check_template["policy"],
                 scope_check=empty_check_template["scope"]
@@ -176,7 +130,7 @@ class SubmissionMetrics:
         
         return FinalDecision(
             desk_reject_decision=status,
-            categories=mapped_category,
+            categories=check_type.capitalize() if self.category.lower() in category_to_check_map else "None",
             confidence_score=self.confidence_score or None,
             analysis=analysis
         )
@@ -278,6 +232,23 @@ def evaluate_submission_full(evaluation_results: Dict[str, SubmissionMetrics], s
     evaluation_results_df.loc[:, "error_status"] = None
     evaluation_results_df.loc[:, "error_message"] = None
 
+    # Get all agents that have iteration results
+    all_agents = set()
+    max_iterations = 0
+    for metrics in evaluation_results.values():
+        if metrics and metrics.agent_iteration_results:
+            all_agents.update(metrics.agent_iteration_results.keys())
+            for iterations_list in metrics.agent_iteration_results.values():
+                max_iterations = max(max_iterations, len(iterations_list))
+    
+    # Initialize agent iteration result columns
+    for agent_name in all_agents:
+        for iter_num in range(1, max_iterations + 1):
+            evaluation_results_df.loc[:, f"{agent_name}_result_{iter_num}"] = None
+            evaluation_results_df.loc[:, f"{agent_name}_evidence_snippet_{iter_num}"] = None
+        evaluation_results_df.loc[:, f"{agent_name}_result_best"] = None
+        evaluation_results_df.loc[:, f"{agent_name}_evidence_snippet_best"] = None
+
     # Mapping CSV status to model decision
     STATUS_MAP = {
         "Desk Rejected": "YES",
@@ -304,7 +275,27 @@ def evaluate_submission_full(evaluation_results: Dict[str, SubmissionMetrics], s
                 evaluation_results_df.loc[directory_name, "error_status"] = metrics.error_type
                 evaluation_results_df.loc[directory_name, "error_message"] = metrics.error_message or ""
                 LOG.warning(f"{directory_name}: {metrics.error_type} - {metrics.error_message}")
+                total_scores.append(0.0)
                 continue  # Skip evaluation for failed submissions
+            
+            # Populate agent iteration results
+            if metrics.agent_iteration_results:
+                for agent_name, iterations_list in metrics.agent_iteration_results.items():
+                    for iter_num, iter_result in enumerate(iterations_list, start=1):
+                        col_result = f"{agent_name}_result_{iter_num}"
+                        col_snippet = f"{agent_name}_evidence_snippet_{iter_num}"
+                        if col_result in evaluation_results_df.columns:
+                            evaluation_results_df.loc[directory_name, col_result] = iter_result.get("result")
+                            evaluation_results_df.loc[directory_name, col_snippet] = iter_result.get("evidence_snippet", "")
+                    
+                    # Find and store the best result (highest confidence)
+                    if iterations_list:
+                        best_iter = max(iterations_list, key=lambda x: x.get("confidence", 0.0))
+                        col_best_result = f"{agent_name}_result_best"
+                        col_best_snippet = f"{agent_name}_evidence_snippet_best"
+                        if col_best_result in evaluation_results_df.columns:
+                            evaluation_results_df.loc[directory_name, col_best_result] = best_iter.get("result")
+                            evaluation_results_df.loc[directory_name, col_best_snippet] = best_iter.get("evidence_snippet", "")
             
             # Convert SASP/SACP metrics to FinalDecision if needed
             if metrics.final_decision is None and metrics.system_name in ['SASP', 'SACP']:

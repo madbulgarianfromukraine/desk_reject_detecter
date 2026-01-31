@@ -98,6 +98,7 @@ class DeskRejectionCLI:
 
     def evaluate_desk_rejection(self, directory: str, system_used: str = 'ddr',
                                 parallel: bool = False, answers_only: bool = False, limit: int = None,
+                                per_class: int = 35,
                                 skip_first: int = 0, balanced: bool = False, main_paper_only: bool = False) -> None:
         """
         Runs an evaluation of all submissions in the directory and produces a report without a binding decision.
@@ -140,7 +141,6 @@ class DeskRejectionCLI:
         
         # Use balanced selection if requested
         if balanced:
-            per_class = (limit // 2) if limit and limit > 0 else 35
             LOG.info(f"Using balanced selection: {per_class} desk-rejected and {per_class} non-desk-rejected submissions")
             try:
                 balanced_dirs = get_balanced_submission_dirs(num_per_class=per_class, random_seed=42)
