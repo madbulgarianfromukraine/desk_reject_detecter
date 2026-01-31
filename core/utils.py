@@ -2,7 +2,7 @@ import time
 from typing import List, Union, Dict, Type, Optional, Any
 import pydantic
 import threading
-from google.genai import types, chats
+from google.genai import types, chats, errors
 import os
 
 from core.config import VertexEngine  # Import the configured LLM
@@ -132,7 +132,11 @@ def send_message_with_cutting(chat: chats.Chat, engine: VertexEngine, prompt_par
     p for p in prompt_parts 
     if (getattr(p, 'text', None) and p.text.strip()) or getattr(p, 'inline_data', None) and len(p.inline_data.data) > 0
     ]
-    total_tokens = engine.count_tokens(valid_parts)
+    try:
+        total_tokens = engine.count_tokens(valid_parts)
+    except errors.ClientError as e:
+        LOG.error(f"Token counting failed: {e}. Sending main paper only.")
+        total_tokens = limit + 1 # Force sending main paper only
 
     if total_tokens > limit:
         LOG.info(f"Prompt tokens ({total_tokens}) exceed limit ({limit}). Analyzing main_paper only")
