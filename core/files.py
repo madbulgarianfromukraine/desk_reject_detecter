@@ -23,6 +23,50 @@ def get_style_guides_parts() -> List[types.Part]:
                 ))
     return __STYLE_GUIDES_CACHE
 
+def add_supplemental_files(supp_path: str) -> List[str]:
+    """
+    Recursively gathers supplemental file paths from the specified directory.
+
+    :param supp_path: The root directory to search for supplemental files.
+    :return: A list of absolute or relative file paths.
+    """
+    all_files = []
+    for root, _, files in os.walk(supp_path):
+        for file in files:
+            all_files.append(os.path.join(root, file))
+    return all_files
+
+def process_supplemental_files(supp_path: str, prompt_parts: List[types.Part]) -> None:
+    """
+    Reads supplemental files from a directory and appends them as Parts to the prompt list.
+
+    :param supp_path: Path to the directory containing supplemental files.
+    :param prompt_parts: The list of prompt parts to append files to.
+    """
+    if os.path.exists(supp_path):
+        prompt_parts.append(types.Part.from_text(text="Here are the supplemental files for the paper"))
+        supplemental_files = add_supplemental_files(supp_path)
+        
+        for s_file in supplemental_files:
+            s_file_mime = get_optimized_fallback_mime(s_file)
+            prompt_parts.append(types.Part.from_text(text=f"The file {s_file}:"))
+
+            with open(s_file, "rb") as f:
+                f_read = f.read()
+                if len(f_read) <= 0:
+                    continue
+
+                if not s_file_mime:
+                    file_part = try_decoding(binary_data=f_read)
+                    if not file_part:
+                        LOG.debug(f"The file '{s_file}' couldn't be uploaded due to unsupported mime_type.")
+                        continue
+                    prompt_parts.append(file_part)
+                else:
+                    prompt_parts.append(types.Part.from_bytes(
+                        data=f_read,
+                        mime_type=s_file_mime
+                    ))
 
 def get_optimized_fallback_mime(file_path: str) -> Optional[str]:
     """
