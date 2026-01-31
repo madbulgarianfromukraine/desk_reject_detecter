@@ -19,10 +19,13 @@ You must categorize every violation into one of the following specific `issue_ty
       - Header/title page Author names AND institution names clearly linked together
       - Acknowledgments: Names of specific people or identifiable PIs (but anonymized citations like "Doe et al. 2023" are OK)
       - Footnotes: Funding agency with specific PI names
+      - The text explicitly identifies the people listed as the authors of this specific submission (e.g., "In this paper, we, [Names]...").
       - Any other OBVIOUS, DIRECT identification that bypasses the double-blind process and is in this violation category
    * DO NOT flag: 
       - Self-citations like "We built on our prior work [3]" are acceptable if reference [3] is anonymized properly.
       - Standard academic citations in references section.
+      - References to external papers, even if they include full names and affiliations.
+      - Standard academic citations used for background or comparison.
       - Anything else that does not meet the ONLY flag IF rules. The `issue_type` must be set to "None" in that case.
 
 * **Visual_Anonymity**
@@ -37,19 +40,19 @@ You must categorize every violation into one of the following specific `issue_ty
 
 * **Self-Citation**
    * ONLY flag IF:
-      - Identifying citations: Look for the patterns, where authors reference themselves and the reference is not anonymized(e.g. in our previous work we showed(Smith et al., 2022)... or something similar)
-      - Actual personal names.
+      - Identifying citations: Look for the patterns, where authors reference themselves and the reference is not anonymized. Only flag if the text uses first-person pronouns ("We", "Our", "My") in direct conjunction with the identifying names.
       - Any other OBVIOUS, DIRECT identification that bypasses the double-blind process and is in this violation category
       - Look very carefully through the whole paper and not only through abtract and introduction.
    * DO NOT flag: 
       - Standard method names (github.com/Qwen, framework names, obviously widely known things) are ACCEPTABLE
       - Pseudonyms or generic usernames
+      - Distinguish between 'Author identity' and 'Academic Reference'. > - If the names appear in a bibliography, a citation bracket [1], or are discussed in the third person (e.g., "Li et al. proposed..."), it is NOT a violation.
       - Anything else that does not meet the ONLY flag IF rules. The `issue_type` must be set to "None" in that case.
 
 4. **Links**
    * ONLY flag IF:
-      - Personal GitHub/GitLab with FULL NAME clearly visible in username/profile
-      - Personal websites or institutional profile pages with clear name + affiliation
+      - GitHub/GitLab with FULL NAME clearly visible in username/profile, which contains the submissions code or project or previous work of the submission authors
+      - Personal websites or institutional profile pages with clear name + affiliation, clearly linked to the submission authors
       - Private repositories—only if they've publicly linked to their identity
       - Any other OBVIOUS, DIRECT identification that bypasses the double-blind process and is in this violation category
    * DO NOT flag: 
