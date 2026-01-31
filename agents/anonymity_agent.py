@@ -37,12 +37,12 @@ You must categorize every violation into one of the following specific `issue_ty
 
 * **Self-Citation**
    * ONLY flag IF:
-      - Identifying citations: Extensive first-author concentration in prior work that reveals identity + affiliation
+      - Identifying citations: Look for the patterns, where authors reference themselves and the reference is not anonymized(for example in our previous work(Wu et al., 2022)...)
       - Actual personal names.
       - Any other OBVIOUS, DIRECT identification that bypasses the double-blind process and is in this violation category
+      - Look very carefully through the whole paper and not only through abtract and introduction.
    * DO NOT flag: 
       - Standard method names (github.com/Qwen, framework names, obviously widely known things) are ACCEPTABLE
-      - 1-2 prior works by same group if not explicitly linking to author identity
       - Pseudonyms or generic usernames
       - Anything else that does not meet the ONLY flag IF rules. The `issue_type` must be set to "None" in that case.
 
