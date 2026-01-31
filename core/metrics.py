@@ -254,16 +254,6 @@ def evaluate_submission_full(evaluation_results: Dict[str, SubmissionMetrics], s
         "Desk Rejected": "YES",
         "Not Desk Rejected": "NO"
     }
-    
-    # Mapping Category to AnalysisReport attribute
-    CATEGORY_TO_ATTR = {
-        "Formatting": "formatting_check",
-        "Anonymity": "anonymity_check",
-        "Policy": "policy_check",
-        "Scope": "scope_check",
-        "Code_of_Ethics": "safety_check",
-        "Visual_Integrity": "visual_integrity_check"
-    }
 
     total_scores = []
 
@@ -328,7 +318,7 @@ def evaluate_submission_full(evaluation_results: Dict[str, SubmissionMetrics], s
             similarity_score = 0.0
             if y_true_status == "YES":
                 if status_match and category_match:
-                    attr_name = CATEGORY_TO_ATTR.get(y_true_category)
+                    attr_name = (y_true_category.lower() + "_check")
                     if attr_name and hasattr(decision.analysis, attr_name):
                         check_result = getattr(decision.analysis, attr_name)
                         y_pred_snippet = check_result.evidence_snippet
