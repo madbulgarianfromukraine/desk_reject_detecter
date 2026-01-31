@@ -15,7 +15,7 @@ from systems.ddr import ddr
 from core.schemas import FinalDecision
 from core.log import LOG, configure_logging
 from core.metrics import evaluate_submission_answers_only, evaluate_submission_full, SubmissionMetrics
-from core.utils import cleanup_caches
+from core.config import cleanup_caches
 from core.balanced_selector import get_balanced_submission_dirs
 
 AVAILABLE_SYSTEMS = [
@@ -91,7 +91,7 @@ class DeskRejectionCLI:
             print(f"Total input tokens are {submission_metrics.total_input_token_count} and total output tokens are {submission_metrics.total_output_token_count}.")
             print("And here is the final decision report:")
 
-            return submission_metrics.final_decision.model_dump_json()
+            return submission_metrics.model_dump_json()
         except Exception as e:
             LOG.error(f"Pipeline failed: {e}")
             sys.exit(1)

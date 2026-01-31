@@ -1,7 +1,7 @@
 from google.genai import types
 
 from core.schemas import AnonymityCheck
-from core.utils import create_chat, ask_agent
+from core.utils import ask_agent
 
 SYSTEM_PROMPT = """
 <role>
@@ -63,9 +63,11 @@ You must categorize every violation into one of the following specific `issue_ty
 </rules>
 """
 
-def create_chat_settings(model_id: str = 'gemini-2.5-flash', search_included : bool = False, thinking_included : bool = False):
-    return create_chat(pydantic_model=AnonymityCheck, system_instructions=SYSTEM_PROMPT, model_id=model_id,
-            search_included=search_included, thinking_included=thinking_included)
-
-def ask_anonymity_agent(path_to_sub_dir: str, main_paper_only: bool = False) -> types.GenerateContentResponse:
-   return ask_agent(pydantic_model=AnonymityCheck, path_to_sub_dir=path_to_sub_dir, main_paper_only=main_paper_only)
+def ask_anonymity_agent(path_to_sub_dir: str, main_paper_only: bool = False,
+                        model_id: str = 'gemini-2.5-flash', search_included : bool = False, thinking_included : bool = False,
+                        ttl_seconds: str = "300s") -> types.GenerateContentResponse:
+   return ask_agent(pydantic_model=AnonymityCheck, system_instruction=SYSTEM_PROMPT,
+                    path_to_sub_dir=path_to_sub_dir, model_id=model_id,
+                    main_paper_only=main_paper_only,
+                    search_included=search_included, thinking_included=thinking_included,
+                    upload_style_guides=False, ttl_seconds=ttl_seconds)

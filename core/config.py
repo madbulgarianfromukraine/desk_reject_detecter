@@ -3,7 +3,9 @@ from google.genai import types
 from pydantic import BaseModel
 import numpy as np
 from typing import Type, Optional, List, Dict
+
 from core.log import LOG
+from core.files import get_style_guides_parts
 
 # 1. The Singleton Client
 # This executes once when the module is imported.
@@ -12,7 +14,7 @@ from core.log import LOG
 # across all agent instances.
 _SHARED_CLIENT = genai.Client(vertexai=True,
                               http_options= types.HttpOptions(timeout=180_000)) #180 seconds = 3 minutes for better processing
-
+__CACHES : Dict[str, types.CachedContent] = {}
 class VertexEngine:
     """
     A wrapper around the Google GenAI client that manages configuration state for LLM agents.
@@ -142,7 +144,7 @@ class VertexEngine:
                 return 8_192
         return 1_048_576
 
-    def generate(self, contents: List[types.Part]):
+    def generate(self, contents: List[types.Part]) -> types.GenerateContentResponse:
         """
         Executes a generation request using the instance's unique config and the shared client.
         Supposed for the amount of tokens less than maximal.
@@ -203,3 +205,73 @@ class VertexEngine:
         # (dot product / (norm1 * norm2))
         score = np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2))
         return score
+    
+
+def create_engine(model_id: str = 'gemini-2.5-flash', pydantic_model: Type[BaseModel] = None,
+                  system_instruction: str = "", thinking_included: bool = False,
+                  search_included: bool = False, upload_style_guides: bool = False, ttl_seconds: str ="300s") -> VertexEngine:
+
+    engine = VertexEngine(model_id=model_id)
+    
+    engine.set_schema(schema=pydantic_model)
+
+    if upload_style_guides:
+        style_guides = get_style_guides_parts()
+        if style_guides:
+            style_guides.insert(0, types.Part.from_text(text=system_instruction))
+            LOG.info(f"Creating context cache with style guides for {pydantic_model.__name__}")
+            cache = engine.create_cache(
+                contents=style_guides,
+                display_name=f"style_guides",
+                ttl_seconds=ttl_seconds
+            )
+            engine.set_cache(cache.name)
+            __CACHES[pydantic_model.__name__] = cache
+        else:
+            # Fallback to non-cached settings
+            engine.set_system_instruction(instruction=system_instruction)
+    else:
+        engine.set_system_instruction(instruction=system_instruction)
+        if search_included:
+            LOG.debug("Adding grounding search")
+            google_search_tool = types.Tool(
+                google_search=types.GoogleSearch()
+            )
+            engine.config.tools = [google_search_tool]
+
+    engine = engine.set_logprobs()
+
+    if thinking_included:
+        LOG.debug("Adding thinking availability")
+        engine.config.thinking_config = types.ThinkingConfig(
+            include_thoughts=True,
+            thinking_budget=1024
+        )
+    else:
+        engine.config.thinking_config = None
+
+    LOG.debug(f"Created engine for {pydantic_model.__name__} with model {model_id}")
+    return engine
+
+
+def cleanup_caches() -> None:
+    """
+    Cleans up the shared cache to free resources.
+
+    This function deletes the shared cached content from the Google Gemini API.
+    Should be called on program exit or on KeyboardInterrupt to prevent resource wastage.
+
+    :return: None
+    """
+    engine = VertexEngine()
+    for cache in __CACHES.values():
+        if cache is None:
+            LOG.info("No cache to clean up.")
+            return
+
+        try:
+            LOG.info(f"Deleting cache: {cache.name}")
+            engine.client.caches.delete(name=cache.name)
+            LOG.info("Cache cleanup completed successfully.")
+        except Exception as e:
+            LOG.error(f"Error during cache cleanup: {e}")
