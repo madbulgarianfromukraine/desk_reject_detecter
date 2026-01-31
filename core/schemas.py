@@ -2,7 +2,7 @@ from typing import Literal, Tuple, Any, Type, List, get_args, get_origin, Option
 from pydantic import BaseModel, Field
 
 # Base schemas for individual checks
-class SafetyCheck(BaseModel):
+class SafetyCheck(BaseModel): # DISABLED
     """
     Schema for Ethical and Safety audit results.
     Checks for:
@@ -31,7 +31,7 @@ class AnonymityCheck(BaseModel):
     reasoning: str
     confidence_score: Optional[float] = Field(default=None, ge=0.0, le=1.0)
 
-class VisualIntegrityCheck(BaseModel):
+class VisualIntegrityCheck(BaseModel): # DISABLED
     """
     Schema for Technical and Visual Quality audit results.
     Checks for:
@@ -93,16 +93,12 @@ class SASPReport(BaseModel):
     Returns a simplified single-pass evaluation of the paper.
     """
     violation_found: Literal["YES", "NO"]
-    issue_type: Literal["Code_of_Ethics", "Anonymity", "Formatting", "Visual_Integrity", "Policy", "Scope", "None"]
+    issue_type: Literal["Anonymity", "Formatting", "Policy", "Scope", "None"]
     sub_category: Literal[
-        # Code_of_Ethics sub-categories
-        "Privacy", "Harm", "Misconduct",
         # Anonymity sub-categories
         "Author_Names", "Visual_Anonymity", "Self-Citation", "Links",
         # Formatting sub-categories
         "Page_Limit", "Statement_Limit", "Margins/Spacing", "Line_Numbers",
-        # Visual_Integrity sub-categories
-        "Placeholder_Figures", "Unreadable_Content", "Broken_Rendering",
         # Policy sub-categories
         "Placeholder_Text", "Dual_Submission", "Plagiarism",
         # Scope sub-categories
@@ -121,16 +117,12 @@ class SACPReport(BaseModel):
     Returns a simplified single-pass evaluation of the paper.
     """
     violation_found: Literal["YES", "NO"]
-    issue_type: Literal["Code_of_Ethics", "Anonymity", "Formatting", "Visual_Integrity", "Policy", "Scope", "None"]
+    issue_type: Literal["Anonymity", "Formatting", "Policy", "Scope", "None"]
     sub_category: Literal[
-        # Code_of_Ethics sub-categories
-        "Privacy", "Harm", "Misconduct",
         # Anonymity sub-categories
         "Author_Names", "Visual_Anonymity", "Self-Citation", "Links",
         # Formatting sub-categories
         "Page_Limit", "Statement_Limit", "Margins/Spacing", "Line_Numbers",
-        # Visual_Integrity sub-categories
-        "Placeholder_Figures", "Unreadable_Content", "Broken_Rendering",
         # Policy sub-categories
         "Placeholder_Text", "Dual_Submission", "Plagiarism",
         # Scope sub-categories
@@ -147,9 +139,7 @@ class AnalysisReport(BaseModel):
     """
     Aggregated report containing results from all six specialized auditor agents.
     """
-    safety_check: SafetyCheck
     anonymity_check: AnonymityCheck
-    visual_integrity_check: VisualIntegrityCheck
     formatting_check: FormattingCheck
     policy_check: PolicyCheck
     scope_check: ScopeCheck
@@ -159,7 +149,7 @@ class FinalDecision(BaseModel):
     Terminal decision schema produced by the Program Chair (Final Agent).
     """
     desk_reject_decision: Literal["YES", "NO"]
-    categories: Literal["Code_of_Ethics", "Anonymity", "Formatting", "Visual_Integrity", "Policy", "Scope", "None"]
+    categories: Literal["Anonymity", "Formatting", "Policy", "Scope", "None"]
     confidence_score: float = Field(ge=0.0, le=1.0)
     analysis: AnalysisReport
 
@@ -167,10 +157,8 @@ class FinalDecision(BaseModel):
 AGENT_SCHEMAS = {
     'formatting_check': FormattingCheck,
     'policy_check': PolicyCheck,
-    'visual_integrity_check': VisualIntegrityCheck,
     'anonymity_check': AnonymityCheck,
     'scope_check': ScopeCheck,
-    'safety_check': SafetyCheck,
 }
 
 def extract_possible_values(pydantic_scheme: Type[BaseModel], target_field: str) -> Tuple[Any]:

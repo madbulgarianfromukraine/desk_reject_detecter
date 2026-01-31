@@ -127,7 +127,12 @@ def send_message_with_cutting(chat: chats.Chat, engine: VertexEngine, prompt_par
     :return: The response from the model.
     """
     limit = engine.get_model_limit()
-    total_tokens = engine.count_tokens(prompt_parts)
+
+    valid_parts = [
+    p for p in prompt_parts 
+    if (getattr(p, 'text', None) and p.text.strip()) or getattr(p, 'inline_data', None) and len(p.inline_data.data) > 0
+    ]
+    total_tokens = engine.count_tokens(valid_parts)
 
     if total_tokens > limit:
         LOG.info(f"Prompt tokens ({total_tokens}) exceed limit ({limit}). Analyzing main_paper only")
