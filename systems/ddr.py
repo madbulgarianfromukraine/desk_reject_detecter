@@ -144,9 +144,7 @@ def ddr(path_sub_dir: Union[os.PathLike, str], think: bool = False, search: bool
             LOG.debug(f"Set confidence_score to None for {key}")
 
     analysis_report = AnalysisReport(
-        safety_check=None,  # DISABLED
         anonymity_check=agent_results.get("anonymity_check"),
-        visual_integrity_check=None,  # DISABLED
         formatting_check=agent_results.get("formatting_check"),
         policy_check=agent_results.get("policy_check"),
         scope_check=agent_results.get("scope_check")
