@@ -13,7 +13,7 @@ from core.metrics import SubmissionMetrics, get_total_input_tokens, get_total_ou
 from core.rate_limiter import RateLimitError
 # Import Agents
 from agents import final_decision_agent
-from agents.utils import AGENT_MAPPING, create_chats
+from agents.utils import AGENT_MAPPING
 import os
 import concurrent.futures
 
@@ -30,8 +30,6 @@ def ddr(path_sub_dir: Union[os.PathLike, str], think: bool = False, search: bool
     paper should be desk-rejected based on conference-specific guidelines (e.g., ICLR).
 
     Workflow Logic:
-    1.  Initialization: Creates chat sessions for all specialized auditor agents (Safety,
-        Anonymity, Formatting, etc.) with optional thinking/search capabilities.
     2.  Iterative Evaluation (Self-Correction):
         - It runs agents in parallel using a ThreadPoolExecutor.
         - For each agent's response, it calculates a logprob-based confidence score.
@@ -53,7 +51,6 @@ def ddr(path_sub_dir: Union[os.PathLike, str], think: bool = False, search: bool
     """
     LOG.info(f"--- Starting Desk Rejection Protocol for submission={path_sub_dir}---")
 
-    create_chats(model_id=MODEL_ID, include_thinking=think, include_search=search, ttl_seconds=ttl_seconds)
 
     CONFIDENCE_THRESHOLD = 0.95 # probably make it configurable, if have time.
     MAX_ITERATIONS = iterations
@@ -78,7 +75,9 @@ def ddr(path_sub_dir: Union[os.PathLike, str], think: bool = False, search: bool
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=5, thread_name_prefix="AgentThread") as executor:
             future_to_agent = {
-                executor.submit(func, path_sub_dir, main_paper_only): key 
+                executor.submit(func, path_sub_dir, main_paper_only,
+                                MODEL_ID, search, think,
+                                ttl_seconds): key 
                 for key, func in agents_to_run.items()
             }
 
@@ -150,7 +149,8 @@ def ddr(path_sub_dir: Union[os.PathLike, str], think: bool = False, search: bool
         scope_check=agent_results.get("scope_check")
     )
 
-    final_decision_response = final_decision_agent.ask_final_decision_agent(analysis_report=analysis_report, submission_id=str(path_sub_dir))
+    final_decision_response = final_decision_agent.ask_final_decision_agent(analysis_report=analysis_report, model_id=MODEL_ID,
+                                                                            search_included=search, thinking_included=think)
     final_decision_response.parsed.confidence_score = combine_confidences(llm_response=final_decision_response, pydantic_scheme=FinalDecision, final_agent=True)
 
     end_time = time.time()
