@@ -228,3 +228,10 @@ def get_balanced_submission_info(
     )
     
     return combined_df
+
+def find_unfinished_submissions(system_used: str = 'ddr', subdirs: List[str] = None, ) -> List[str]:
+    eval_results = pd.read_csv(f'data/iclr/data/evaluation_results_{system_used}.csv')
+
+    finished = eval_results['directory_name'].unique()
+
+    return list(set(subdirs) - set(finished))

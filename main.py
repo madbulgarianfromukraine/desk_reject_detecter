@@ -16,7 +16,7 @@ from core.schemas import FinalDecision
 from core.log import LOG, configure_logging
 from core.metrics import evaluate_submission_answers_only, evaluate_submission_full, SubmissionMetrics
 from core.config import cleanup_caches
-from core.balanced_selector import get_balanced_submission_dirs
+from core.balanced_selector import get_balanced_submission_dirs, find_unfinished_submissions
 
 AVAILABLE_SYSTEMS = [
     'ddr', # desk reject detecter
@@ -99,7 +99,8 @@ class DeskRejectionCLI:
     def evaluate_desk_rejection(self, directory: str, system_used: str = 'ddr',
                                 parallel: bool = False, answers_only: bool = False, limit: int = None,
                                 per_class: int = 35,
-                                skip_first: int = 0, balanced: bool = False, main_paper_only: bool = False) -> None:
+                                skip_first: int = 0, balanced: bool = False, main_paper_only: bool = False,
+                                find_unfinished: bool = False) -> None:
         """
         Runs an evaluation of all submissions in the directory and produces a report without a binding decision.
         Usage: python cli.py evaluate_desk_rejection ./my_paper_folder --limit 5
@@ -108,6 +109,7 @@ class DeskRejectionCLI:
         :param answers_only: Evaluate only the precision of the answer or also consider the precision of the reason for desk rejection.
         :param limit: Limits the amount of tested instances.
         :param balanced: If True, selects equal number of desk-rejected and non-desk-rejected submissions.
+        :param find_unfinished: find the submissions, which were not finished.
         """
         eval_results = {}
         LOG.debug(f"--- EVALUATING {directory.split(sep='/')[-1]} with answers_only={answers_only} ---")
@@ -136,7 +138,6 @@ class DeskRejectionCLI:
                     return ddr(path_sub_dir=path_sub_dir, think=think, search=search, ttl_seconds="10800s", main_paper_only=main_paper_only)
 
                 desk_rejection_system = __run_ddr_default
-
         subdirs = [os.path.join(directory, d) for d in os.listdir(directory) if os.path.isdir(os.path.join(directory, d))]
         
         # Use balanced selection if requested
@@ -156,10 +157,14 @@ class DeskRejectionCLI:
         else:
             limit = min(limit, len(subdirs))
 
-        if limit < len(subdirs):
+        if find_unfinished:
+            subdirs = find_unfinished_submissions(system_used=system_used, subdirs=subdirs)
+        elif not find_unfinished and limit < len(subdirs):
             random.seed(42)
             subdirs = random.sample(subdirs, limit + skip_first)[skip_first:]
-        
+
+
+        LOG.info(f"Selected {len(subdirs)} submissions for evaluation")
         if parallel:
             with ThreadPoolExecutor(thread_name_prefix="Directory_Evaluation", max_workers=3) as executor:
                 future_to_eval_result = {executor.submit(desk_rejection_system, diry, main_paper_only): diry for diry in subdirs}
@@ -186,7 +191,7 @@ class DeskRejectionCLI:
 
         if answers_only:
             return evaluate_submission_answers_only(evaluation_results=eval_results)
-        return evaluate_submission_full(evaluation_results=eval_results, system_used=system_used, skip=skip_first)
+        return evaluate_submission_full(evaluation_results=eval_results, system_used=system_used, skip=skip_first or find_unfinished)
 
 
 
