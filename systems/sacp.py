@@ -1,14 +1,12 @@
-from typing import Union, Optional, Type
+from typing import Union, Optional
 import os
 import time
-import pydantic
 from google.genai import types
 
 from core.schemas import SACPReport
 from core.metrics import SubmissionMetrics, get_total_input_tokens, get_total_output_tokens
-from core.utils import create_chat, ask_agent
+from core.utils import ask_agent
 from core.log import LOG
-from core.logprobs import combine_confidences
 
 # Model configuration
 MODEL_ID = "gemini-2.5-flash"
@@ -78,19 +76,13 @@ Output Requirements:
 - Return a JSON object matching the SACPReport schema
 """
 
-def create_chat_settings(model_id: str = MODEL_ID, search_included: bool = False, thinking_included: bool = False):
-    """Initialize chat session for SACP."""
-    return create_chat(
-        pydantic_model=SACPReport,
-        system_instructions=SACP_SYSTEM_PROMPT,
-        model_id=model_id,
-        search_included=search_included,
-        thinking_included=thinking_included
-    )
-
-def ask_sacp_agent(path_to_sub_dir: str) -> types.GenerateContentResponse:
+def ask_sacp_agent(path_to_sub_dir: str, model_id: str = MODEL_ID, main_paper_only: bool = False,
+                   search_included: bool = False, thinking_included: bool = False) -> types.GenerateContentResponse:
     """Send comprehensive evaluation request to SACP agent."""
-    return ask_agent(pydantic_model=SACPReport, path_to_sub_dir=path_to_sub_dir)
+    return ask_agent(pydantic_model=SACPReport, system_instruction=SACP_SYSTEM_PROMPT,
+                    path_to_sub_dir=path_to_sub_dir, model_id=model_id,
+                    main_paper_only=main_paper_only,
+                    search_included=search_included, thinking_included=thinking_included)
 
 def sacp(path_sub_dir: Union[os.PathLike, str], think: bool = False, search: bool = False) -> Optional[SubmissionMetrics]:
     """
@@ -107,26 +99,22 @@ def sacp(path_sub_dir: Union[os.PathLike, str], think: bool = False, search: boo
     """
     LOG.info(f"--- Starting SACP (Single Agent Complex Prompt) for submission={path_sub_dir} ---")
     
-    # Initialize chat session
-    create_chat_settings(model_id=MODEL_ID, search_included=search, thinking_included=think)
-    
     start_time = time.time()
     
     try:
         # Get comprehensive evaluation from SACP agent
-        response = ask_sacp_agent(path_sub_dir)
-        
-        # Compute logprob-based confidence score
-        #new_confidence = combine_confidences(response, SACPReport)
+        response = ask_sacp_agent(path_to_sub_dir=str(path_sub_dir), model_id=MODEL_ID,
+                                 main_paper_only=False, search_included=search,
+                                 thinking_included=think)
+
+        # Parse the response
         parsed_response: SACPReport = response.parsed
-        #parsed_response.confidence_score = new_confidence
-        
-        #LOG.debug(f"SACP evaluation confidence: {new_confidence}")
+
         LOG.info(f"SACP decision: {parsed_response.violation_found} (Category: {parsed_response.issue_type}, Sub-category: {parsed_response.sub_category})")
         
         elapsed_time = time.time() - start_time
         
-        # Create and return metrics (without final_decision - will be converted during evaluation)
+        # Create and return metrics
         metrics = SubmissionMetrics(
             submission_id=str(path_sub_dir),
             system_name="SACP",
@@ -143,4 +131,13 @@ def sacp(path_sub_dir: Union[os.PathLike, str], think: bool = False, search: boo
         
     except Exception as e:
         LOG.error(f"Error during SACP evaluation: {e}")
-        return None
+        return SubmissionMetrics(
+            submission_id=str(path_sub_dir),
+            system_name="SACP",
+            total_elapsed_time=time.time() - start_time,
+            total_input_token_count=get_total_input_tokens(),
+            total_output_token_count=get_total_output_tokens(),
+            error_type=str(e),
+            error_message=str(e),
+            confidence_score=0.0
+        )
