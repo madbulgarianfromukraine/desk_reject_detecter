@@ -230,6 +230,28 @@ def get_balanced_submission_info(
     return combined_df
 
 def find_unfinished_submissions(system_used: str = 'ddr', subdirs: List[str] = None, ) -> List[str]:
+    """
+    Find submissions that haven't been evaluated yet by checking the evaluation results CSV.
+    
+    This function is useful for resuming evaluations after interruptions or errors.
+    It compares the provided list of submission directories against the evaluation
+    results file to identify which submissions are missing from the results.
+    
+    :param system_used: The name of the evaluation system (e.g., 'ddr', 'sasp', 'sacp').
+                       This is used to locate the appropriate results CSV file at
+                       'data/iclr/data/evaluation_results_{system_used}.csv'
+    :param subdirs: List of submission directory paths to check. These should be
+                   full paths or directory names that match the 'directory_name'
+                   column in the evaluation results CSV.
+    :return: List of submission directories that are NOT present in the evaluation
+             results, i.e., submissions that still need to be evaluated.
+    :raises FileNotFoundError: If the evaluation results CSV file doesn't exist.
+    
+    Example:
+        >>> subdirs = ['/data/sub1', '/data/sub2', '/data/sub3']
+        >>> unfinished = find_unfinished_submissions('ddr', subdirs)
+        >>> print(unfinished)  # e.g., ['/data/sub3'] if sub1 and sub2 are finished
+    """
     eval_results = pd.read_csv(f'data/iclr/data/evaluation_results_{system_used}.csv')
 
     finished = eval_results['directory_name'].unique()

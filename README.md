@@ -70,7 +70,13 @@ python main.py evaluate_desk_rejection --directory ./path/to/submissions_root --
 
 ### Project Structure
 - `agents/`: Implementation of specialized auditor agents and their system prompts.
-- `core/`: Core logic including LLM configuration (`config.py`), confidence calculation (`logprobs.py`), and data schemas (`schemas.py`).
-- `ddr.py`: The main orchestrator that manages the multi-agent workflow and self-correction loop.
+- `core/`: Core logic including LLM configuration (`config.py`), confidence calculation (`logprobs.py`), data schemas (`schemas.py`), and balanced sampling (`balanced_selector.py`).
+- `systems/ddr.py`: The main orchestrator that manages the multi-agent workflow and self-correction loop.
 - `main.py`: CLI entry point for the system.
 - `data/iclr/requirements/`: Contains the conference style guides and policy documents used as grounding for the agents.
+- `docs/`: Detailed documentation for specific modules and features.
+
+### Documentation
+
+For detailed documentation about specific modules:
+- **[Balanced Selector Module](docs/balanced_selector_explanation.md)**: Explains the balanced sampling logic for evaluation datasets, including stratification and resume capabilities.
