@@ -1,0 +1,283 @@
+material_id,directory_name,status,desk_reject_comments,supplemental_downloaded,category
+zqA19DirIT,data/iclr/data/submission_zqA19DirIT,Desk Rejected,the paper does not comply with the length requirements outlined in the CFP.,False,Formatting
+z5Th95xtBW,data/iclr/data/submission_z5Th95xtBW,Desk Rejected,"The paper reveals the author identities at line 245, where it references prior work as performed by the authors.",False,Anonymity
+y9xNQZjUJM,data/iclr/data/submission_y9xNQZjUJM,Desk Rejected,The paper is desk rejected for significant textual overlap with https://arxiv.org/pdf/2404.12534,False,Policy
+xIW2WtCuYE,data/iclr/data/submission_xIW2WtCuYE,Desk Rejected,The submitted PDF is a placeholder and not a valid submission.,False,Policy
+v4Bl6tfaaO,data/iclr/data/submission_v4Bl6tfaaO,Desk Rejected,Line 146 reveals the author identities,False,Anonymity
+uiBLOcyTIA,data/iclr/data/submission_uiBLOcyTIA,Desk Rejected,"The revised PDF contains the author names on the first page, breaking double blind review.",False,Anonymity
+u4XyECA6Zd,data/iclr/data/submission_u4XyECA6Zd,Desk Rejected,"This paper is desk rejected due to incorrect margins, which are significantly smaller than the accepted ICLR format. The modified margins allow significantly more text to fit into the paper than the page limit would allow.",True,Formatting
+tEM1u9VT2W,data/iclr/data/submission_tEM1u9VT2W,Desk Rejected,margin violation,False,Formatting
+sSWiZr8QU7,data/iclr/data/submission_sSWiZr8QU7,Desk Rejected,deanonymized PDF,True,Anonymity
+sQa6VrK6tm,data/iclr/data/submission_sQa6VrK6tm,Desk Rejected,Violation of formatting guideline.,True,Formatting
+rsD6qAvtxO,data/iclr/data/submission_rsD6qAvtxO,Desk Rejected,over the page limit,False,Formatting
+qXwVXj03nO,data/iclr/data/submission_qXwVXj03nO,Desk Rejected,Over the page limit. The conclusion in the main text slips 11 lines into the 11th page.,True,Formatting
+pjfvmZWFfX,data/iclr/data/submission_pjfvmZWFfX,Desk Rejected,For using smaller margin than the official template.,False,Formatting
+nQoRKLeOP0,data/iclr/data/submission_nQoRKLeOP0,Desk Rejected,Deanonymizing information (author's name) in the source code zip file provided,True,Anonymity
+n7RqgqbxP7,data/iclr/data/submission_n7RqgqbxP7,Desk Rejected,Exceeding page limit and missing figures,False,Formatting
+n6PE0xbgdA,data/iclr/data/submission_n6PE0xbgdA,Desk Rejected,Github link  in Abstract results in a webpage  immediately violates anonymity.,False,Anonymity
+n6Gg0D2jWT,data/iclr/data/submission_n6Gg0D2jWT,Desk Rejected,"The paper is desk rejected for significant textual overlap with Wang, X., Tian, Z., Wan, Z., Wen, Y., Wang, J., & Zhang, W. (2023). Order Matters: Agent-by-agent Policy Optimization. ICLR 2023.",False,Policy
+mPMLZv4kSL,data/iclr/data/submission_mPMLZv4kSL,Desk Rejected,"The revision uploaded at 22 Nov 2024 at 14:27 Eastern Standard Time contained the author names on the first page of the PDF, which was seen by the reviewers. The paper is desk rejected for violating the anonymity policy and breaking double blind review. The decision was confirmed by the program chairs.",False,Anonymity
+lX8DahcJbL,data/iclr/data/submission_lX8DahcJbL,Desk Rejected,"violating formatting guideline (use smaller font size from the bottom of page 6 all the way to the end of the main text (end of page 10), which enables it to squeeze in substantially more content.)",True,Formatting
+jKNv7Fvurt,data/iclr/data/submission_jKNv7Fvurt,Desk Rejected,Paper exceeds page limit.,False,Formatting
+i0TOAkzGF8,data/iclr/data/submission_i0TOAkzGF8,Desk Rejected,Format violating ICLR 2025 guidelines.,True,Formatting
+pmPonAozxY,data/iclr/data/submission_pmPonAozxY,Not Desk Rejected,,False,
+rowzIcQjEU,data/iclr/data/submission_rowzIcQjEU,Not Desk Rejected,,False,
+hHNVn4hFPk,data/iclr/data/submission_hHNVn4hFPk,Desk Rejected,"The paper is desk rejected for breaking the anonymity policy. During the rebuttal period, a revised PDF was uploaded that contained the author names on the first page. ",True,Anonymity
+sbfYF6U1dU,data/iclr/data/submission_sbfYF6U1dU,Not Desk Rejected,,True,
+eJVrwDE086,data/iclr/data/submission_eJVrwDE086,Desk Rejected,Violate anonymity policy.,False,Anonymity
+bnjmLAQurV,data/iclr/data/submission_bnjmLAQurV,Not Desk Rejected,,True,
+4CUMOUdMWJ,data/iclr/data/submission_4CUMOUdMWJ,Not Desk Rejected,,False,
+93MMwgeUzD,data/iclr/data/submission_93MMwgeUzD,Not Desk Rejected,,False,
+s7l7QJP3ad,data/iclr/data/submission_s7l7QJP3ad,Not Desk Rejected,,False,
+pwilycD30m,data/iclr/data/submission_pwilycD30m,Not Desk Rejected,,False,
+eIK4ojL2QM,data/iclr/data/submission_eIK4ojL2QM,Desk Rejected,Violating anonymity/double-blind policy -- the first sentence in the Introduction section directly reveals the identities of the authors.,True,Anonymity
+tTNH7iAvpQ,data/iclr/data/submission_tTNH7iAvpQ,Not Desk Rejected,,False,
+ChbCYd1uk5,data/iclr/data/submission_ChbCYd1uk5,Not Desk Rejected,,True,
+cWFLrctwuE,data/iclr/data/submission_cWFLrctwuE,Desk Rejected,The paper exceeds the page limit.,True,Formatting
+cO01zqImBC,data/iclr/data/submission_cO01zqImBC,Desk Rejected,violating formatting template.,False,Formatting
+ciX5XfUTmm,data/iclr/data/submission_ciX5XfUTmm,Not Desk Rejected,,True,
+cIKQp84vqN,data/iclr/data/submission_cIKQp84vqN,Desk Rejected,"The paper is desk rejected due to substantial overlap with the CVPR paper ""[Adaptive Annealing for Robust Geometric Estimation](https://openaccess.thecvf.com/content/CVPR2023/papers/Sidhartha_Adaptive_Annealing_for_Robust_Geometric_Estimation_CVPR_2023_paper.pdf)"" by Chitturi Sidhartha, Lalit Manam and Venu Madhav Govindu. The overlaps are: nearly identical figure 1, overlapping formulas, and nearly identical algorithm 1 box. This decision was confirmed by multiple senior members of the review committee.",True,Policy
+rO5BVBwgiv,data/iclr/data/submission_rO5BVBwgiv,Not Desk Rejected,,True,
+bqLx5Rs8Tc,data/iclr/data/submission_bqLx5Rs8Tc,Desk Rejected,severe margin violation,False,Formatting
+Vn23PakSbM,data/iclr/data/submission_Vn23PakSbM,Desk Rejected,The submission is incomplete and cannot be reviewed without more details. The paper does not comply with the length requirements outlined in the CfP.,False,Policy
+V8wrTu8p6x,data/iclr/data/submission_V8wrTu8p6x,Desk Rejected,violating length limit (main text beyond 10 pages),False,Formatting
+VWj9rTfZzQ,data/iclr/data/submission_VWj9rTfZzQ,Not Desk Rejected,,False,
+sIGWTd1DcW,data/iclr/data/submission_sIGWTd1DcW,Not Desk Rejected,,False,
+yyGNVjtMUQ,data/iclr/data/submission_yyGNVjtMUQ,Not Desk Rejected,,False,
+UpPXWd9SBk,data/iclr/data/submission_UpPXWd9SBk,Desk Rejected,Page 11 contains main text material.,False,Formatting
+1KRM3igwn1,data/iclr/data/submission_1KRM3igwn1,Not Desk Rejected,,False,
+U0y32WKeOd,data/iclr/data/submission_U0y32WKeOd,Desk Rejected,Wrong formatting template.,False,Formatting
+72nCh5JtLQ,data/iclr/data/submission_72nCh5JtLQ,Not Desk Rejected,,True,
+TIxiwxd4iD,data/iclr/data/submission_TIxiwxd4iD,Desk Rejected,"The paper is incomplete, and cannot be reviewed in this state.",False,Policy
+SY70rVSr3M,data/iclr/data/submission_SY70rVSr3M,Desk Rejected,violating format guideline (reduced margin),True,Formatting
+apImxsNAfy,data/iclr/data/submission_apImxsNAfy,Not Desk Rejected,,False,
+S7M1iqFLVm,data/iclr/data/submission_S7M1iqFLVm,Desk Rejected,"violation of formatting guideline (margin, length)",False,Formatting
+Rhclu9eWxU,data/iclr/data/submission_Rhclu9eWxU,Desk Rejected,This paper violated the double-blind policy,False,Anonymity
+ReKrTbRfJt,data/iclr/data/submission_ReKrTbRfJt,Desk Rejected,"The paper includes funding acknowledgements, including a specific grant number that can be used to identify the authors. The authors certified that there is ""no acknowledgement section in this submission for double blind review."" The submission is not double blind, causing desk rejection.",False,Anonymity
+Rd34VDwqB7,data/iclr/data/submission_Rd34VDwqB7,Desk Rejected,violation in margin formatting,False,Formatting
+jCtT1vUWb7,data/iclr/data/submission_jCtT1vUWb7,Not Desk Rejected,,True,
+SuHINd4yqq,data/iclr/data/submission_SuHINd4yqq,Not Desk Rejected,,False,
+brgbLavmja,data/iclr/data/submission_brgbLavmja,Not Desk Rejected,,False,
+PAzVN4EEkj,data/iclr/data/submission_PAzVN4EEkj,Desk Rejected,This paper is desk rejected because the authors are not anonymized.,True,Anonymity
+O9W9DesXid,data/iclr/data/submission_O9W9DesXid,Desk Rejected,This paper contains a GitHub link that reveals the identity of the authors. This broke double blind review.,False,Anonymity
+Mphd6Sf6z4,data/iclr/data/submission_Mphd6Sf6z4,Desk Rejected,out of scope for the interests of ICLR,False,Scope
+MGZyUtaYUb,data/iclr/data/submission_MGZyUtaYUb,Desk Rejected,For violating anonymity policy: multiple times in the supplemental the identities of different authors were revealed by citing to their own work,False,Anonymity
+LKtttBE5GN,data/iclr/data/submission_LKtttBE5GN,Desk Rejected,Desk reject due to major violations of the style file.,False,Formatting
+IpLXuqmP0C,data/iclr/data/submission_IpLXuqmP0C,Desk Rejected,For using smaller margin to fit in the page limit.,True,Formatting
+InxxTu0Bfs,data/iclr/data/submission_InxxTu0Bfs,Desk Rejected,"material on 11th page, not reproducibility or ethics statement",False,Formatting
+cLj51OYBsh,data/iclr/data/submission_cLj51OYBsh,Not Desk Rejected,,True,
+BM4GXtI7ma,data/iclr/data/submission_BM4GXtI7ma,Not Desk Rejected,,False,
+J2FyEVg8HR,data/iclr/data/submission_J2FyEVg8HR,Not Desk Rejected,,False,
+r0QqfaCkF8,data/iclr/data/submission_r0QqfaCkF8,Not Desk Rejected,,False,
+GjSWkSaNTQ,data/iclr/data/submission_GjSWkSaNTQ,Not Desk Rejected,,False,
+cKMeRFyrQf,data/iclr/data/submission_cKMeRFyrQf,Not Desk Rejected,,False,
+iBTz28Je0F,data/iclr/data/submission_iBTz28Je0F,Not Desk Rejected,,True,
+GnCw9lCPs9,data/iclr/data/submission_GnCw9lCPs9,Desk Rejected,The paper does not follow the ICLR style format.,False,Formatting
+GLKig15TWJ,data/iclr/data/submission_GLKig15TWJ,Desk Rejected,"This paper is being desk rejected due to noticeable margin violation.",False,Anonymity
+GE0UKtI6Lf,data/iclr/data/submission_GE0UKtI6Lf,Desk Rejected,Desk reject due to significantly reduced left margin.,True,Formatting
+GCfllRcbvt,data/iclr/data/submission_GCfllRcbvt,Desk Rejected,margin violation,False,Formatting
+GCSr6QCCwF,data/iclr/data/submission_GCSr6QCCwF,Desk Rejected,"The paper has content on the 11th page, breaking the page limit.",False,Formatting
+FUwWdUi55e,data/iclr/data/submission_FUwWdUi55e,Desk Rejected,Margin violation,True,Formatting
+FLSWAJqTjE,data/iclr/data/submission_FLSWAJqTjE,Desk Rejected,"material on 11th page, not reproducibility or ethics statement, changed margins",False,Formatting
+F8BPhZ5nmU,data/iclr/data/submission_F8BPhZ5nmU,Desk Rejected,"This paper is desk rejected for significant textual overlap with [1]. The introduction has significant overlap in text, and method section has significant overlap in text, both of which are without proper citation. This level of overlap is considered plagiarism. The decision was confirmed by multiple members of the program committee. [1] ""Forgetting before Learning: Utilizing Parametric Arithmetic for Knowledge Updating in Large Language Models"" by Shiwen Ni, Dingwei Chen, Chengming Li, Xiping Hu, Ruifeng Xu, Min Yang. https://arxiv.org/pdf/2311.08011",False,Policy
+EGjTCIcSnW,data/iclr/data/submission_EGjTCIcSnW,Desk Rejected,Margin violation -- this paper has reduced margins on both the left and right sides,False,Formatting
+DqPDavAEXt,data/iclr/data/submission_DqPDavAEXt,Desk Rejected,violating formating guideline,False,Formatting
+DXz1PDA0Wg,data/iclr/data/submission_DXz1PDA0Wg,Desk Rejected,not a full paper; violating anonymity requirement.,False,Policy
+9d6RcViazd,data/iclr/data/submission_9d6RcViazd,Desk Rejected,"This paper is desk rejected because the Github URL reveals the author's identity (https://ralle-demo.github.io/RALL-E/), which is linked in the introduction.",False,Anonymity
+8sKXFvSCqA,data/iclr/data/submission_8sKXFvSCqA,Desk Rejected,Violating anonymity policy. The linked github repo has an explicit mentioning of the author identity.,False,Anonymity
+8g7hHwSBjH,data/iclr/data/submission_8g7hHwSBjH,Desk Rejected,"The supplemental material contains a file ""2025_ICLR_LIU_Ziwei_Invar_RAG_Appendix.pdf"" which has the author names, breaking double blind review.",True,Anonymity
+7bwE5MJAVJ,data/iclr/data/submission_7bwE5MJAVJ,Desk Rejected,"This paper is desk rejected for being substantially similar to the COLING 2025 submission ""Fine-grained Hallucination Mitigation and Detection in Language Model Reasoning"", which is ID 2476 at COLING. The paper shares the same content, nearly identical figures, nearly identical tables, and large similarities in text.",False,Policy
+55Ruu7bF4b,data/iclr/data/submission_55Ruu7bF4b,Desk Rejected,"does not follow the page limit (only 4 pages of main content), and the paper is not complete with empty experimental sections.",False,Formatting
+4NgxI6Z74n,data/iclr/data/submission_4NgxI6Z74n,Desk Rejected,margin violation,False,Formatting
+3x4vpeAclU,data/iclr/data/submission_3x4vpeAclU,Desk Rejected,The submitted PDF is a placeholder and not a valid submission.,False,Policy
+2RcTuBc4mA,data/iclr/data/submission_2RcTuBc4mA,Desk Rejected,Margin violation,True,Formatting
+1poUSIGSCI,data/iclr/data/submission_1poUSIGSCI,Desk Rejected,This submitted PDF is not anonymous.,False,Anonymity
+fSbPwHjdDG,data/iclr/data/submission_fSbPwHjdDG,Not Desk Rejected,,True,
+s8vwMRFP46,data/iclr/data/submission_s8vwMRFP46,Not Desk Rejected,,False,
+1Qq62mo8TW,data/iclr/data/submission_1Qq62mo8TW,Desk Rejected,For using smaller margin and narrower linespace,False,Formatting
+zebxJxSHcD,data/iclr/data/submission_zebxJxSHcD,Not Desk Rejected,,False,
+063FuFYQQd,data/iclr/data/submission_063FuFYQQd,Not Desk Rejected,,False,
+3lJtfEshTj,data/iclr/data/submission_3lJtfEshTj,Not Desk Rejected,,False,
+69gvHFQjT4,data/iclr/data/submission_69gvHFQjT4,Not Desk Rejected,,False,
+swdbLX02w1,data/iclr/data/submission_swdbLX02w1,Not Desk Rejected,,True,
+KSyhyqKZru,data/iclr/data/submission_KSyhyqKZru,Not Desk Rejected,,False,
+qPZaTqLee4,data/iclr/data/submission_qPZaTqLee4,Not Desk Rejected,,True,
+6P9z7OPwhY,data/iclr/data/submission_6P9z7OPwhY,Not Desk Rejected,,True,
+IPJPlHkXca,data/iclr/data/submission_IPJPlHkXca,Not Desk Rejected,,True,
+kizp0ci8gp,data/iclr/data/submission_kizp0ci8gp,Not Desk Rejected,,True,
+xz1N9tIoVm,data/iclr/data/submission_xz1N9tIoVm,Not Desk Rejected,,False,
+pUswbXnrRV,data/iclr/data/submission_pUswbXnrRV,Not Desk Rejected,,True,
+ghwUG9sM6w,data/iclr/data/submission_ghwUG9sM6w,Not Desk Rejected,,True,
+zIZWiVSFDJ,data/iclr/data/submission_zIZWiVSFDJ,Not Desk Rejected,,True,
+5MjTICltx3,data/iclr/data/submission_5MjTICltx3,Not Desk Rejected,,False,
+mhyl7HhNM5,data/iclr/data/submission_mhyl7HhNM5,Not Desk Rejected,,False,
+Uikm88S9Ly,data/iclr/data/submission_Uikm88S9Ly,Not Desk Rejected,,False,
+LnSRXiM4wz,data/iclr/data/submission_LnSRXiM4wz,Not Desk Rejected,,False,
+fNOSPlFZu4,data/iclr/data/submission_fNOSPlFZu4,Not Desk Rejected,,True,
+fq4q3UExwT,data/iclr/data/submission_fq4q3UExwT,Not Desk Rejected,,False,
+mFRtQlYU83,data/iclr/data/submission_mFRtQlYU83,Not Desk Rejected,,True,
+RE5M27pOrM,data/iclr/data/submission_RE5M27pOrM,Not Desk Rejected,,False,
+aUeQPyRMeJ,data/iclr/data/submission_aUeQPyRMeJ,Not Desk Rejected,,False,
+xd0aZl0zYr,data/iclr/data/submission_xd0aZl0zYr,Not Desk Rejected,,False,
+xQrYkpRY4w,data/iclr/data/submission_xQrYkpRY4w,Not Desk Rejected,,True,
+weeGJ2NqfN,data/iclr/data/submission_weeGJ2NqfN,Not Desk Rejected,,True,
+WWd4zD3RjT,data/iclr/data/submission_WWd4zD3RjT,Not Desk Rejected,,True,
+0wg7EKMER8,data/iclr/data/submission_0wg7EKMER8,Not Desk Rejected,,True,
+dzwEOuwqXI,data/iclr/data/submission_dzwEOuwqXI,Not Desk Rejected,,False,
+t67MuGumZa,data/iclr/data/submission_t67MuGumZa,Not Desk Rejected,,False,
+5s6anCd8VC,data/iclr/data/submission_5s6anCd8VC,Not Desk Rejected,,False,
+mGjyNHDa9f,data/iclr/data/submission_mGjyNHDa9f,Not Desk Rejected,,False,
+oJz2e1fQkA,data/iclr/data/submission_oJz2e1fQkA,Not Desk Rejected,,False,
+USGEEMvlIz,data/iclr/data/submission_USGEEMvlIz,Not Desk Rejected,,False,
+QP3EvD1AVa,data/iclr/data/submission_QP3EvD1AVa,Not Desk Rejected,,True,
+65AdXqYvml,data/iclr/data/submission_65AdXqYvml,Not Desk Rejected,,False,
+3QoXfx1Tgw,data/iclr/data/submission_3QoXfx1Tgw,Not Desk Rejected,,True,
+JKMoLnT1wZ,data/iclr/data/submission_JKMoLnT1wZ,Not Desk Rejected,,False,
+Pzn77FHQE2,data/iclr/data/submission_Pzn77FHQE2,Not Desk Rejected,,False,
+2vJVZuk8hF,data/iclr/data/submission_2vJVZuk8hF,Not Desk Rejected,,False,
+cyztbL49dt,data/iclr/data/submission_cyztbL49dt,Not Desk Rejected,,True,
+sbsQLawyA6,data/iclr/data/submission_sbsQLawyA6,Not Desk Rejected,,False,
+eFvb4hXpZa,data/iclr/data/submission_eFvb4hXpZa,Not Desk Rejected,,False,
+seilwMD9m2,data/iclr/data/submission_seilwMD9m2,Not Desk Rejected,,False,
+vRXGdrJX1v,data/iclr/data/submission_vRXGdrJX1v,Not Desk Rejected,,False,
+ftwMX4ORIS,data/iclr/data/submission_ftwMX4ORIS,Not Desk Rejected,,True,
+KX5hd1RhYP,data/iclr/data/submission_KX5hd1RhYP,Not Desk Rejected,,True,
+CgkGFeSpo0,data/iclr/data/submission_CgkGFeSpo0,Not Desk Rejected,,False,
+Z2Ust9fXoU,data/iclr/data/submission_Z2Ust9fXoU,Not Desk Rejected,,True,
+vrJtg5L3Qd,data/iclr/data/submission_vrJtg5L3Qd,Not Desk Rejected,,True,
+2DeibhIxiE,data/iclr/data/submission_2DeibhIxiE,Not Desk Rejected,,True,
+A1ayFJNTkk,data/iclr/data/submission_A1ayFJNTkk,Not Desk Rejected,,True,
+TXcmEEfzcN,data/iclr/data/submission_TXcmEEfzcN,Not Desk Rejected,,False,
+qzlaUU1qKS,data/iclr/data/submission_qzlaUU1qKS,Not Desk Rejected,,False,
+ih1jJ5ySKz,data/iclr/data/submission_ih1jJ5ySKz,Not Desk Rejected,,False,
+S1U0CIuejF,data/iclr/data/submission_S1U0CIuejF,Not Desk Rejected,,False,
+Bne7q9KGJq,data/iclr/data/submission_Bne7q9KGJq,Not Desk Rejected,,False,
+npQlSdw5fs,data/iclr/data/submission_npQlSdw5fs,Not Desk Rejected,,True,
+I3TlddWzwS,data/iclr/data/submission_I3TlddWzwS,Not Desk Rejected,,True,
+E6cf2krY7t,data/iclr/data/submission_E6cf2krY7t,Not Desk Rejected,,True,
+H5FUVj0vMd,data/iclr/data/submission_H5FUVj0vMd,Not Desk Rejected,,True,
+yjXwwMmdxO,data/iclr/data/submission_yjXwwMmdxO,Not Desk Rejected,,True,
+Kk1Wik8AA7,data/iclr/data/submission_Kk1Wik8AA7,Not Desk Rejected,,True,
+3g7HuQ8avZ,data/iclr/data/submission_3g7HuQ8avZ,Not Desk Rejected,,False,
+j0GpgAGMS0,data/iclr/data/submission_j0GpgAGMS0,Not Desk Rejected,,True,
+kAF4rKtADP,data/iclr/data/submission_kAF4rKtADP,Not Desk Rejected,,True,
+3VZrQkUy9i,data/iclr/data/submission_3VZrQkUy9i,Not Desk Rejected,,False,
+tVNZj27pb3,data/iclr/data/submission_tVNZj27pb3,Not Desk Rejected,,False,
+qdxi2qQ6h6,data/iclr/data/submission_qdxi2qQ6h6,Not Desk Rejected,,False,
+2soZBUoG3n,data/iclr/data/submission_2soZBUoG3n,Not Desk Rejected,,False,
+RpQvJZOjFl,data/iclr/data/submission_RpQvJZOjFl,Not Desk Rejected,,False,
+pdHYd6uE8M,data/iclr/data/submission_pdHYd6uE8M,Not Desk Rejected,,True,
+MYurA6pca3,data/iclr/data/submission_MYurA6pca3,Not Desk Rejected,,False,
+JYKaW41bw6,data/iclr/data/submission_JYKaW41bw6,Not Desk Rejected,,True,
+K1G8UKcEBO,data/iclr/data/submission_K1G8UKcEBO,Not Desk Rejected,,True,
+aya06N6R4W,data/iclr/data/submission_aya06N6R4W,Not Desk Rejected,,False,
+unO4aZrWxJ,data/iclr/data/submission_unO4aZrWxJ,Not Desk Rejected,,False,
+45J4NpR5YP,data/iclr/data/submission_45J4NpR5YP,Not Desk Rejected,,False,
+viOk8hPJwb,data/iclr/data/submission_viOk8hPJwb,Not Desk Rejected,,True,
+vwc3lkIMrV,data/iclr/data/submission_vwc3lkIMrV,Not Desk Rejected,,False,
+xekDXVPowC,data/iclr/data/submission_xekDXVPowC,Not Desk Rejected,,True,
+LqB8cRuBua,data/iclr/data/submission_LqB8cRuBua,Not Desk Rejected,,False,
+Cody9WEwvN,data/iclr/data/submission_Cody9WEwvN,Not Desk Rejected,,False,
+KLohACsAvo,data/iclr/data/submission_KLohACsAvo,Not Desk Rejected,,True,
+vdRgUeQ9bt,data/iclr/data/submission_vdRgUeQ9bt,Not Desk Rejected,,True,
+oXWDC6vntg,data/iclr/data/submission_oXWDC6vntg,Not Desk Rejected,,False,
+nRjRqa4Rct,data/iclr/data/submission_nRjRqa4Rct,Not Desk Rejected,,True,
+vjix3rKn5N,data/iclr/data/submission_vjix3rKn5N,Not Desk Rejected,,False,
+id4B6CRLQU,data/iclr/data/submission_id4B6CRLQU,Not Desk Rejected,,False,
+3fMlnV4O6R,data/iclr/data/submission_3fMlnV4O6R,Not Desk Rejected,,False,
+KuEQontWny,data/iclr/data/submission_KuEQontWny,Not Desk Rejected,,True,
+omirESguHw,data/iclr/data/submission_omirESguHw,Not Desk Rejected,,True,
+8hspVyl462,data/iclr/data/submission_8hspVyl462,Not Desk Rejected,,False,
+ndI0Lqu9xh,data/iclr/data/submission_ndI0Lqu9xh,Not Desk Rejected,,False,
+iJxsH77FPQ,data/iclr/data/submission_iJxsH77FPQ,Not Desk Rejected,,True,
+6L7A0KEZEw,data/iclr/data/submission_6L7A0KEZEw,Not Desk Rejected,,False,
+02JCrTEaah,data/iclr/data/submission_02JCrTEaah,Not Desk Rejected,,True,
+K5WdMEj0ZY,data/iclr/data/submission_K5WdMEj0ZY,Not Desk Rejected,,False,
+sKj6gRGOK4,data/iclr/data/submission_sKj6gRGOK4,Not Desk Rejected,,False,
+FrmVRUVOEF,data/iclr/data/submission_FrmVRUVOEF,Not Desk Rejected,,False,
+fcRp7ZwiE2,data/iclr/data/submission_fcRp7ZwiE2,Not Desk Rejected,,False,
+fkEuwPACye,data/iclr/data/submission_fkEuwPACye,Not Desk Rejected,,False,
+i18nO8LU98,data/iclr/data/submission_i18nO8LU98,Not Desk Rejected,,True,
+8HIyFNxaUc,data/iclr/data/submission_8HIyFNxaUc,Not Desk Rejected,,False,
+AsjxfgisFf,data/iclr/data/submission_AsjxfgisFf,Not Desk Rejected,,False,
+00EY3SdfMj,data/iclr/data/submission_00EY3SdfMj,Not Desk Rejected,,False,
+I7GUSPwaU6,data/iclr/data/submission_I7GUSPwaU6,Not Desk Rejected,,False,
+jPsaeptpVI,data/iclr/data/submission_jPsaeptpVI,Not Desk Rejected,,False,
+F27YbvbgKy,data/iclr/data/submission_F27YbvbgKy,Not Desk Rejected,,False,
+ijuesqStgU,data/iclr/data/submission_ijuesqStgU,Not Desk Rejected,,True,
+LNnBjJHI1g,data/iclr/data/submission_LNnBjJHI1g,Not Desk Rejected,,True,
+NDcVId9DRi,data/iclr/data/submission_NDcVId9DRi,Not Desk Rejected,,False,
+MOCEoNsjEx,data/iclr/data/submission_MOCEoNsjEx,Not Desk Rejected,,False,
+BfI0D1ci9r,data/iclr/data/submission_BfI0D1ci9r,Not Desk Rejected,,False,
+457EEKClOS,data/iclr/data/submission_457EEKClOS,Not Desk Rejected,,True,
+vbh8YOG1AL,data/iclr/data/submission_vbh8YOG1AL,Not Desk Rejected,,False,
+3E9oXcX8SH,data/iclr/data/submission_3E9oXcX8SH,Not Desk Rejected,,False,
+8PUKWdHfzf,data/iclr/data/submission_8PUKWdHfzf,Not Desk Rejected,,False,
+hlkgcGiHiT,data/iclr/data/submission_hlkgcGiHiT,Not Desk Rejected,,False,
+Ck7iJPJihb,data/iclr/data/submission_Ck7iJPJihb,Not Desk Rejected,,False,
+YvgMBxXzat,data/iclr/data/submission_YvgMBxXzat,Not Desk Rejected,,False,
+5xFBpvP82f,data/iclr/data/submission_5xFBpvP82f,Not Desk Rejected,,False,
+o0AX8YBt5M,data/iclr/data/submission_o0AX8YBt5M,Not Desk Rejected,,True,
+sPIWx2oIwY,data/iclr/data/submission_sPIWx2oIwY,Not Desk Rejected,,True,
+MOt7TUucrK,data/iclr/data/submission_MOt7TUucrK,Not Desk Rejected,,False,
+i2Xd6l4AQT,data/iclr/data/submission_i2Xd6l4AQT,Not Desk Rejected,,True,
+Vv01YTvIWo,data/iclr/data/submission_Vv01YTvIWo,Not Desk Rejected,,True,
+cYOO3j5psc,data/iclr/data/submission_cYOO3j5psc,Not Desk Rejected,,False,
+RvMR7WpTsh,data/iclr/data/submission_RvMR7WpTsh,Not Desk Rejected,,True,
+JGt14kjxB2,data/iclr/data/submission_JGt14kjxB2,Not Desk Rejected,,False,
+XgTD4swBgD,data/iclr/data/submission_XgTD4swBgD,Not Desk Rejected,,False,
+QPsbC714Cy,data/iclr/data/submission_QPsbC714Cy,Not Desk Rejected,,False,
+wwXgvjNmt5,data/iclr/data/submission_wwXgvjNmt5,Not Desk Rejected,,False,
+fGT0soHkS1,data/iclr/data/submission_fGT0soHkS1,Not Desk Rejected,,False,
+ppeG3z5mcj,data/iclr/data/submission_ppeG3z5mcj,Not Desk Rejected,,True,
+KBZCstQDLc,data/iclr/data/submission_KBZCstQDLc,Not Desk Rejected,,False,
+6PFi1I5a5S,data/iclr/data/submission_6PFi1I5a5S,Not Desk Rejected,,True,
+lk1sKfRphE,data/iclr/data/submission_lk1sKfRphE,Not Desk Rejected,,False,
+5zvY521iKA,data/iclr/data/submission_5zvY521iKA,Not Desk Rejected,,True,
+86v9jpx7CP,data/iclr/data/submission_86v9jpx7CP,Not Desk Rejected,,False,
+waDNle9o7h,data/iclr/data/submission_waDNle9o7h,Not Desk Rejected,,True,
+h8aIcL6etg,data/iclr/data/submission_h8aIcL6etg,Not Desk Rejected,,False,
+TkbjqexD8w,data/iclr/data/submission_TkbjqexD8w,Not Desk Rejected,,False,
+mT9uTc2WFi,data/iclr/data/submission_mT9uTc2WFi,Not Desk Rejected,,True,
+5F1oAoI0ju,data/iclr/data/submission_5F1oAoI0ju,Not Desk Rejected,,False,
+MWBOURemgb,data/iclr/data/submission_MWBOURemgb,Not Desk Rejected,,False,
+ARhJbaAjyE,data/iclr/data/submission_ARhJbaAjyE,Not Desk Rejected,,True,
+s0gdfKcmoU,data/iclr/data/submission_s0gdfKcmoU,Not Desk Rejected,,True,
+o1efpbvR6v,data/iclr/data/submission_o1efpbvR6v,Not Desk Rejected,,False,
+7JOyzmthiB,data/iclr/data/submission_7JOyzmthiB,Not Desk Rejected,,True,
+MK4OCJGVJG,data/iclr/data/submission_MK4OCJGVJG,Not Desk Rejected,,False,
+knMF5IYzG1,data/iclr/data/submission_knMF5IYzG1,Not Desk Rejected,,False,
+5KRxLvYLlM,data/iclr/data/submission_5KRxLvYLlM,Not Desk Rejected,,False,
+5vThYkPjZB,data/iclr/data/submission_5vThYkPjZB,Not Desk Rejected,,True,
+UlGbZv1QxO,data/iclr/data/submission_UlGbZv1QxO,Not Desk Rejected,,False,
+Uv6oWlPxz0,data/iclr/data/submission_Uv6oWlPxz0,Not Desk Rejected,,True,
+CTLieyrNZr,data/iclr/data/submission_CTLieyrNZr,Not Desk Rejected,,False,
+js07ojTaXk,data/iclr/data/submission_js07ojTaXk,Not Desk Rejected,,False,
+std8uhk6j1,data/iclr/data/submission_std8uhk6j1,Not Desk Rejected,,True,
+zhcLv7XGbg,data/iclr/data/submission_zhcLv7XGbg,Not Desk Rejected,,True,
+2924nrgHce,data/iclr/data/submission_2924nrgHce,Not Desk Rejected,,True,
+oMNRZLdbsp,data/iclr/data/submission_oMNRZLdbsp,Not Desk Rejected,,False,
+gD5mxbneen,data/iclr/data/submission_gD5mxbneen,Not Desk Rejected,,True,
+TqTjMoQzmF,data/iclr/data/submission_TqTjMoQzmF,Not Desk Rejected,,False,
+sw2OlVUtgt,data/iclr/data/submission_sw2OlVUtgt,Not Desk Rejected,,True,
+x2pjmRPfsj,data/iclr/data/submission_x2pjmRPfsj,Not Desk Rejected,,True,
+hx8E1L4v2e,data/iclr/data/submission_hx8E1L4v2e,Not Desk Rejected,,False,
+A4VGwAR9rd,data/iclr/data/submission_A4VGwAR9rd,Not Desk Rejected,,True,
+6KKjX4GjSP,data/iclr/data/submission_6KKjX4GjSP,Not Desk Rejected,,False,
+9pDbWbJzC4,data/iclr/data/submission_9pDbWbJzC4,Not Desk Rejected,,False,
+0BVaZYQ16a,data/iclr/data/submission_0BVaZYQ16a,Not Desk Rejected,,False,
+YE5m1lkx4q,data/iclr/data/submission_YE5m1lkx4q,Not Desk Rejected,,True,
+Z608qn27wW,data/iclr/data/submission_Z608qn27wW,Not Desk Rejected,,False,
+B8eepY4uPl,data/iclr/data/submission_B8eepY4uPl,Not Desk Rejected,,False,
+ALV2XuiUAf,data/iclr/data/submission_ALV2XuiUAf,Not Desk Rejected,,False,
+Uc2P6WIgoo,data/iclr/data/submission_Uc2P6WIgoo,Not Desk Rejected,,False,
+PpFULhpjvo,data/iclr/data/submission_PpFULhpjvo,Not Desk Rejected,,False,
+7koNuzBqoj,data/iclr/data/submission_7koNuzBqoj,Not Desk Rejected,,False,
+P7s4WYF1rf,data/iclr/data/submission_P7s4WYF1rf,Not Desk Rejected,,True,
+nKjFnUGhBg,data/iclr/data/submission_nKjFnUGhBg,Not Desk Rejected,,True,
+FRsieSMW3Y,data/iclr/data/submission_FRsieSMW3Y,Not Desk Rejected,,False,
+z78aQM0Fug,data/iclr/data/submission_z78aQM0Fug,Not Desk Rejected,,False,
+xewdOJqGu1,data/iclr/data/submission_xewdOJqGu1,Not Desk Rejected,,False,
+NAlpAxxLAT,data/iclr/data/submission_NAlpAxxLAT,Not Desk Rejected,,True,
+tBRuDKS4Ui,data/iclr/data/submission_tBRuDKS4Ui,Not Desk Rejected,,True,
+zBKyQogOxI,data/iclr/data/submission_zBKyQogOxI,Not Desk Rejected,,False,
